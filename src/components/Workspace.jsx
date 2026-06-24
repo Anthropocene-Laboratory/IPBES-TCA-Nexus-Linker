@@ -6,7 +6,7 @@ import TcaList from './TcaList'
 import NexusList from './NexusList'
 import DefinitionPanel from './DefinitionPanel'
 import GraphView from './GraphView'
-import { downloadLinksCsv } from '../lib/exportLinks'
+import { downloadLinksExcel } from '../lib/exportLinks'
 import { parseAction } from '../lib/format'
 
 const EMPTY_AGG = { mine: null, mineComment: '', primary: 0, secondary: 0, list: [] }
@@ -370,11 +370,11 @@ export default function Workspace({ me, onSignOut }) {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <button
-            onClick={() => downloadLinksCsv(links, expertsById, tcaActions, nexusOptions)}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50"
-            title="Download one row per expert link as a CSV file"
+            onClick={() => downloadLinksExcel(links, expertsById, tcaActions, nexusOptions)}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
+            title="Download a formatted Excel workbook (links + summary)"
           >
-            Download CSV
+            Download Excel
           </button>
           <span className="text-slate-600">
             Expert: <strong className="text-slate-900">{me.name}</strong>
