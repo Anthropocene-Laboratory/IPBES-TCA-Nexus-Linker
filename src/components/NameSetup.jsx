@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-// Shown once after first sign-in to capture the expert's display name.
-// Identity (id) and email come from the authenticated session.
-export default function NameSetup({ session, onDone }) {
+const ID_KEY = 'tcaNexusExpertId'
+const NAME_KEY = 'tcaNexusExpertName'
+
+// Lightweight identity (no login): the expert provides a display name + an email
+// (for contact). We mint a stable browser UUID so links are attributed.
+export default function NameSetup({ onDone }) {
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -12,21 +16,16 @@ export default function NameSetup({ session, onDone }) {
     e.preventDefault()
     setSaving(true)
     setError('')
-    const profile = {
-      id: session.user.id,
-      name: name.trim(),
-      email: session.user.email,
-    }
-    const { data, error } = await supabase
-      .from('experts')
-      .upsert(profile, { onConflict: 'id' })
-      .select()
-      .single()
+    const id = localStorage.getItem(ID_KEY) || crypto.randomUUID()
+    const profile = { id, name: name.trim(), email: email.trim() }
+    const { error } = await supabase.from('experts').upsert(profile, { onConflict: 'id' })
     if (error) {
       setError(error.message)
       setSaving(false)
     } else {
-      onDone(data)
+      localStorage.setItem(ID_KEY, id)
+      localStorage.setItem(NAME_KEY, profile.name)
+      onDone(profile)
     }
   }
 
@@ -35,20 +34,35 @@ export default function NameSetup({ session, onDone }) {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <h1 className="text-xl font-semibold text-slate-900">TCA ↔ Nexus Linker</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Signed in as <strong className="text-slate-700">{session.user.email}</strong>
+          Expert tool: link TCA actions to Nexus response options.
         </p>
         <p className="mt-4 text-sm text-slate-600">
-          Enter the name your links will be attributed to for other experts.
+          Enter your name and email. Your name attributes your links to other experts;
+          your email lets us contact you if needed.
         </p>
         <form onSubmit={save} className="mt-3 space-y-3">
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-          />
+          <label className="block text-sm font-medium text-slate-700">
+            Name
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            Email
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@institution.org"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            />
+          </label>
           <button
             type="submit"
             disabled={saving}

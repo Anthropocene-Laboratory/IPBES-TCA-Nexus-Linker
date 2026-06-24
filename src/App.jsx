@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase, isConfigured } from './lib/supabase'
-import Login from './components/Login'
+import AccessGate from './components/AccessGate'
 import NameSetup from './components/NameSetup'
 import Workspace from './components/Workspace'
+
+const ID_KEY = 'tcaNexusExpertId'
+const NAME_KEY = 'tcaNexusExpertName'
+const ACCESS_KEY = 'tcaNexusAccess'
+const ACCESS_CODE = import.meta.env.VITE_ACCESS_CODE // optional shared passphrase
 
 function ConfigNotice() {
   return (
@@ -20,52 +25,43 @@ function ConfigNotice() {
 }
 
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)
+  const [me, setMe] = useState(null) // { id, name }
+  const [unlocked, setUnlocked] = useState(
+    () => !ACCESS_CODE || localStorage.getItem(ACCESS_KEY) === ACCESS_CODE,
+  )
   const [loading, setLoading] = useState(true)
 
+  // Restore identity from this browser, if any.
   useEffect(() => {
     if (!isConfigured) {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      if (!data.session) setLoading(false)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s)
-      if (!s) {
-        setProfile(null)
-        setLoading(false)
-      }
-    })
-    return () => sub.subscription.unsubscribe()
+    const id = localStorage.getItem(ID_KEY)
+    const name = localStorage.getItem(NAME_KEY)
+    if (id && name) {
+      // Ensure the expert row exists (name only — preserves any saved email).
+      supabase
+        .from('experts')
+        .upsert({ id, name }, { onConflict: 'id' })
+        .then(() => {
+          setMe({ id, name })
+          setLoading(false)
+        })
+    } else {
+      setLoading(false)
+    }
   }, [])
 
-  // With a session, load (or detect missing) the expert profile.
-  useEffect(() => {
-    if (!session) return
-    let cancelled = false
-    setLoading(true)
-    supabase
-      .from('experts')
-      .select('*')
-      .eq('id', session.user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return
-        setProfile(data || null)
-        setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [session])
+  function unlock(code) {
+    localStorage.setItem(ACCESS_KEY, code)
+    setUnlocked(true)
+  }
 
-  async function signOut() {
-    await supabase.auth.signOut()
-    setProfile(null)
+  function switchExpert() {
+    localStorage.removeItem(ID_KEY)
+    localStorage.removeItem(NAME_KEY)
+    setMe(null)
   }
 
   if (!isConfigured) return <ConfigNotice />
@@ -76,7 +72,7 @@ export default function App() {
       </div>
     )
   }
-  if (!session) return <Login />
-  if (!profile) return <NameSetup session={session} onDone={setProfile} />
-  return <Workspace me={profile} onSignOut={signOut} />
+  if (!unlocked) return <AccessGate expected={ACCESS_CODE} onUnlock={unlock} />
+  if (!me) return <NameSetup onDone={setMe} />
+  return <Workspace me={me} onSignOut={switchExpert} />
 }
