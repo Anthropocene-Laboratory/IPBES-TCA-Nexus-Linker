@@ -3,9 +3,11 @@ import { supabase } from '../lib/supabase'
 
 const ID_KEY = 'tcaNexusExpertId'
 const NAME_KEY = 'tcaNexusExpertName'
+const EMAIL_KEY = 'tcaNexusExpertEmail'
 
-// Lightweight identity (no login): the expert provides a display name + an email
-// (for contact). We mint a stable browser UUID so links are attributed.
+// Lightweight identity (no login). The EMAIL is the identity key: the same
+// email always maps to one expert, so different name spellings don't create
+// duplicates. The DB generates the id; we upsert on email.
 export default function NameSetup({ onDone }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -16,16 +18,20 @@ export default function NameSetup({ onDone }) {
     e.preventDefault()
     setSaving(true)
     setError('')
-    const id = localStorage.getItem(ID_KEY) || crypto.randomUUID()
-    const profile = { id, name: name.trim(), email: email.trim() }
-    const { error } = await supabase.from('experts').upsert(profile, { onConflict: 'id' })
+    const normEmail = email.trim().toLowerCase()
+    const { data, error } = await supabase
+      .from('experts')
+      .upsert({ name: name.trim(), email: normEmail }, { onConflict: 'email' })
+      .select()
+      .single()
     if (error) {
       setError(error.message)
       setSaving(false)
     } else {
-      localStorage.setItem(ID_KEY, id)
-      localStorage.setItem(NAME_KEY, profile.name)
-      onDone(profile)
+      localStorage.setItem(ID_KEY, data.id)
+      localStorage.setItem(NAME_KEY, data.name)
+      localStorage.setItem(EMAIL_KEY, normEmail)
+      onDone(data)
     }
   }
 

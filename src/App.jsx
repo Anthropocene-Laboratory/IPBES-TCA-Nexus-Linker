@@ -6,6 +6,7 @@ import Workspace from './components/Workspace'
 
 const ID_KEY = 'tcaNexusExpertId'
 const NAME_KEY = 'tcaNexusExpertName'
+const EMAIL_KEY = 'tcaNexusExpertEmail'
 const ACCESS_KEY = 'tcaNexusAccess'
 const ACCESS_CODE = import.meta.env.VITE_ACCESS_CODE // optional shared passphrase
 
@@ -39,11 +40,13 @@ export default function App() {
     }
     const id = localStorage.getItem(ID_KEY)
     const name = localStorage.getItem(NAME_KEY)
+    const email = localStorage.getItem(EMAIL_KEY)
     if (id && name) {
-      // Ensure the expert row exists (name only — preserves any saved email).
+      // Ensure the expert row exists (keeps the email key intact after resets).
+      const profile = email ? { id, name, email } : { id, name }
       supabase
         .from('experts')
-        .upsert({ id, name }, { onConflict: 'id' })
+        .upsert(profile, { onConflict: 'id' })
         .then(() => {
           setMe({ id, name })
           setLoading(false)
@@ -61,6 +64,7 @@ export default function App() {
   function switchExpert() {
     localStorage.removeItem(ID_KEY)
     localStorage.removeItem(NAME_KEY)
+    localStorage.removeItem(EMAIL_KEY)
     setMe(null)
   }
 

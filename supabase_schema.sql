@@ -16,11 +16,15 @@ drop table if exists public.links cascade;
 drop table if exists public.experts cascade;
 
 create table public.experts (
-  id         uuid primary key,            -- client-generated browser UUID
+  id         uuid primary key default gen_random_uuid(),
   name       text not null,
   email      text,
   created_at timestamptz not null default now()
 );
+
+-- One expert per email (identity key): different name spellings with the same
+-- email map to a single expert. Store emails normalized (lowercase/trim).
+create unique index experts_email_unique on public.experts (email);
 
 create table public.links (
   id              uuid primary key default gen_random_uuid(),
