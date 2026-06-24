@@ -5,8 +5,11 @@ import nexusOptions from '../data/nexus_options.json'
 import TcaList from './TcaList'
 import NexusList from './NexusList'
 import DefinitionPanel from './DefinitionPanel'
+import GraphView from './GraphView'
+import { downloadLinksCsv } from '../lib/exportLinks'
+import { parseAction } from '../lib/format'
 
-const EMPTY_AGG = { mine: null, primary: 0, secondary: 0, list: [] }
+const EMPTY_AGG = { mine: null, mineComment: '', primary: 0, secondary: 0, list: [] }
 
 export default function Workspace({ me, onSignOut }) {
   const [links, setLinks] = useState([])
@@ -16,6 +19,19 @@ export default function Workspace({ me, onSignOut }) {
   const [hoveredOption, setHoveredOption] = useState(null) // preview (hover)
   const [busyOptionId, setBusyOptionId] = useState(null)
   const [loadError, setLoadError] = useState('')
+  const [tab, setTab] = useState('linker') // linker | graph
+  const [colW, setColW] = useState(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('tcaNexusColW'))
+      if (s && s.tca && s.nexus) return s
+    } catch {
+      /* ignore */
+    }
+    return { tca: 320, nexus: 480 }
+  })
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true,
+  )
 
   // Ergonomic controls
   const [search, setSearch] = useState('')
@@ -75,11 +91,21 @@ export default function Workspace({ me, onSignOut }) {
     if (!selectedActionId) return map
     for (const l of links) {
       if (l.tca_action_id !== selectedActionId) continue
-      const slot = map[l.nexus_option_id] || (map[l.nexus_option_id] = { mine: null, primary: 0, secondary: 0, list: [] })
+      const slot =
+        map[l.nexus_option_id] ||
+        (map[l.nexus_option_id] = { mine: null, mineComment: '', primary: 0, secondary: 0, list: [] })
       if (l.strength === 'primary') slot.primary += 1
       else slot.secondary += 1
-      if (l.expert_id === me.id) slot.mine = l.strength
-      slot.list.push({ expert_id: l.expert_id, name: expertsById[l.expert_id] || '—', strength: l.strength })
+      if (l.expert_id === me.id) {
+        slot.mine = l.strength
+        slot.mineComment = l.comment || ''
+      }
+      slot.list.push({
+        expert_id: l.expert_id,
+        name: expertsById[l.expert_id] || '—',
+        strength: l.strength,
+        comment: l.comment || '',
+      })
     }
     return map
   }, [links, selectedActionId, me.id, expertsById])
@@ -163,6 +189,31 @@ export default function Workspace({ me, onSignOut }) {
     [selectedActionId, pairMap, me.id, fetchLinks],
   )
 
+  const setComment = useCallback(
+    async (option, text) => {
+      if (!selectedActionId) return
+      setBusyOptionId(option.id)
+      setLoadError('')
+      try {
+        const { data, error } = await supabase
+          .from('links')
+          .update({ comment: text, updated_at: new Date().toISOString() })
+          .match({ expert_id: me.id, tca_action_id: selectedActionId, nexus_option_id: option.id })
+          .select('id')
+          .maybeSingle()
+        if (error) throw error
+        if (!data) throw new Error('This link could not be found. Please reload and try again.')
+        await fetchLinks()
+      } catch (error) {
+        setLoadError(error.message)
+        throw error
+      } finally {
+        setBusyOptionId(null)
+      }
+    },
+    [selectedActionId, me.id, fetchLinks],
+  )
+
   function toggleCategory(cat) {
     setCollapsedCats((prev) => {
       const n = new Set(prev)
@@ -226,7 +277,72 @@ export default function Workspace({ me, onSignOut }) {
     setFocusedOptionId(null)
   }
 
+  // Resizable columns (desktop): track widths, persist, drag handles.
+  useEffect(() => {
+    const m = window.matchMedia('(min-width: 1024px)')
+    const h = () => setIsDesktop(m.matches)
+    m.addEventListener('change', h)
+    return () => m.removeEventListener('change', h)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('tcaNexusColW', JSON.stringify(colW))
+  }, [colW])
+
+  function startResize(which, e) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = colW[which]
+    const onMove = (ev) => {
+      const w = Math.min(760, Math.max(220, startW + (ev.clientX - startX)))
+      setColW((prev) => ({ ...prev, [which]: w }))
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+  }
+
   const myLinkedCount = selectedActionId ? myCountByAction[selectedActionId] || 0 : 0
+
+  const tcaPanel = (
+    <TcaList actions={tcaActions} selectedId={selectedActionId} onSelect={selectAction} myCountByAction={myCountByAction} />
+  )
+  const nexusPanel = (
+    <NexusList
+      options={visibleOptions}
+      totalCount={nexusOptions.length}
+      selectedActionId={selectedActionId}
+      pairAgg={pairAgg}
+      selectedOptionId={selectedOption?.id}
+      focusedOptionId={focusedOptionId}
+      onSelectOption={(o) => {
+        setSelectedOption((prev) => (prev?.id === o.id ? null : o))
+        setFocusedOptionId(o.id)
+      }}
+      onHoverOption={setHoveredOption}
+      onSetStrength={setStrength}
+      onSetComment={setComment}
+      busyOptionId={busyOptionId}
+      search={search}
+      onSearch={setSearch}
+      filter={filter}
+      onFilter={setFilter}
+      collapsedCats={collapsedCats}
+      onToggleCategory={toggleCategory}
+      myLinkedCount={myLinkedCount}
+    />
+  )
+  const defPanel = (
+    <DefinitionPanel action={selectedAction} option={displayedOption} attribution={attribution} query={search} />
+  )
+  const resizerClass = 'bg-slate-200 hover:bg-indigo-400 active:bg-indigo-500 cursor-col-resize transition-colors'
 
   return (
     <div className="h-full flex flex-col">
@@ -235,7 +351,31 @@ export default function Workspace({ me, onSignOut }) {
           <h1 className="text-sm font-semibold text-slate-900">TCA ↔ Nexus Linker</h1>
           <p className="text-xs text-slate-400">Link TCA actions to Nexus response options</p>
         </div>
+        <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
+          {[
+            { key: 'linker', label: 'Linker' },
+            { key: 'graph', label: 'Flow graph' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={
+                'text-xs font-medium rounded-md px-3 py-1.5 transition-colors ' +
+                (tab === t.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700')
+              }
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <div className="flex items-center gap-3 text-sm">
+          <button
+            onClick={() => downloadLinksCsv(links, expertsById, tcaActions, nexusOptions)}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+            title="Download one row per expert link as a CSV file"
+          >
+            Download CSV
+          </button>
           <span className="text-slate-600">
             Expert: <strong className="text-slate-900">{me.name}</strong>
           </span>
@@ -243,7 +383,7 @@ export default function Workspace({ me, onSignOut }) {
             onClick={onSignOut}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
           >
-            Switch expert
+            Sign out
           </button>
         </div>
       </header>
@@ -252,38 +392,38 @@ export default function Workspace({ me, onSignOut }) {
         <div className="bg-red-50 text-red-700 text-sm px-4 py-2 border-b border-red-200">{loadError}</div>
       )}
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(280px,1fr)_minmax(360px,1.3fr)_minmax(300px,1fr)] divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
-        <div className="min-h-0 bg-white">
-          <TcaList actions={tcaActions} selectedId={selectedActionId} onSelect={selectAction} myCountByAction={myCountByAction} />
+      {tab === 'linker' && (
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600">
+          <span className="font-medium text-slate-800">Workflow:</span>{' '}
+          choose an action, inspect an option definition, then record a primary or secondary link.
+          {selectedAction && (
+            <span className="ml-2 font-medium text-indigo-700">Currently coding: {parseAction(selectedAction.action).code}</span>
+          )}
         </div>
-        <div className="min-h-0 bg-white">
-          <NexusList
-            options={visibleOptions}
-            totalCount={nexusOptions.length}
-            selectedActionId={selectedActionId}
-            pairAgg={pairAgg}
-            selectedOptionId={selectedOption?.id}
-            focusedOptionId={focusedOptionId}
-            onSelectOption={(o) => {
-              setSelectedOption((prev) => (prev?.id === o.id ? null : o))
-              setFocusedOptionId(o.id)
-            }}
-            onHoverOption={setHoveredOption}
-            onSetStrength={setStrength}
-            busyOptionId={busyOptionId}
-            search={search}
-            onSearch={setSearch}
-            filter={filter}
-            onFilter={setFilter}
-            collapsedCats={collapsedCats}
-            onToggleCategory={toggleCategory}
-            myLinkedCount={myLinkedCount}
-          />
+      )}
+
+      {tab === 'graph' ? (
+        <div className="flex-1 min-h-0 bg-white">
+          <GraphView links={links} expertsById={expertsById} />
         </div>
-        <div className="min-h-0 bg-white">
-          <DefinitionPanel action={selectedAction} option={displayedOption} attribution={attribution} query={search} />
+      ) : isDesktop ? (
+        <div
+          className="flex-1 min-h-0 grid"
+          style={{ gridTemplateColumns: `${colW.tca}px 6px ${colW.nexus}px 6px minmax(0, 1fr)` }}
+        >
+          <div className="min-h-0 bg-white overflow-hidden">{tcaPanel}</div>
+          <div onMouseDown={(e) => startResize('tca', e)} className={resizerClass} title="Drag to resize" />
+          <div className="min-h-0 bg-white overflow-hidden">{nexusPanel}</div>
+          <div onMouseDown={(e) => startResize('nexus', e)} className={resizerClass} title="Drag to resize" />
+          <div className="min-h-0 bg-white overflow-hidden">{defPanel}</div>
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-auto grid grid-cols-1 divide-y divide-slate-200">
+          <div className="h-[70vh] bg-white">{tcaPanel}</div>
+          <div className="h-[70vh] bg-white">{nexusPanel}</div>
+          <div className="h-[70vh] bg-white">{defPanel}</div>
+        </div>
+      )}
     </div>
   )
 }

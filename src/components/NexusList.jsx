@@ -1,8 +1,10 @@
 import { groupBy } from '../lib/format'
 import Highlight from './Highlight'
+import CommentBox from './CommentBox'
 
 function StrengthButton({ label, active, color, onClick, disabled }) {
-  const base = 'text-xs font-medium rounded-md px-2 py-1 border transition-colors disabled:opacity-40'
+  const base =
+    'text-xs font-medium rounded-md px-2 py-1 border transition-[background-color,transform] active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100'
   const on =
     color === 'primary'
       ? 'bg-indigo-600 border-indigo-600 text-white'
@@ -62,6 +64,7 @@ export default function NexusList({
   onSelectOption,
   onHoverOption,
   onSetStrength,
+  onSetComment,
   busyOptionId,
   search,
   onSearch,
@@ -111,7 +114,7 @@ export default function NexusList({
               key={f.key}
               onClick={() => onFilter(f.key)}
               className={
-                'text-xs rounded-full px-2.5 py-1 border ' +
+                'text-xs rounded-full px-2.5 py-1 border transition-colors active:scale-[0.97] ' +
                 (filter === f.key
                   ? 'bg-slate-900 border-slate-900 text-white'
                   : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50')
@@ -184,7 +187,7 @@ export default function NexusList({
                         </button>
                         <AgreementBadge primary={agg.primary} secondary={agg.secondary} />
                       </div>
-                      <div className="mt-1 flex items-center gap-1.5">
+                      <div className="mt-2 flex items-center gap-1.5">
                         <StrengthButton
                           label="Primary"
                           color="primary"
@@ -199,8 +202,16 @@ export default function NexusList({
                           disabled={disabled || busyOptionId === o.id}
                           onClick={() => onSetStrength(o, 'secondary')}
                         />
-                        {agg.mine && <span className="text-[11px] text-slate-400">(click again to remove)</span>}
+                        {agg.mine && <span className="text-[11px] text-slate-500">Click the active label again to remove</span>}
                       </div>
+                      {agg.mine && (
+                        <CommentBox
+                          key={`${selectedActionId}-${o.id}`}
+                          initial={agg.mineComment}
+                          onSave={(t) => onSetComment(o, t)}
+                          disabled={busyOptionId === o.id}
+                        />
+                      )}
                     </div>
                   )
                 })}

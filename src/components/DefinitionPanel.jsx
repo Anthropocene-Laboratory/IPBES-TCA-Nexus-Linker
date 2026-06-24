@@ -38,7 +38,7 @@ export default function DefinitionPanel({ action, option, attribution, query }) 
               </span>
               {parseAction(action.action).label}
             </h3>
-            <p className="mt-2 max-w-[68ch] text-sm text-slate-600 whitespace-pre-line leading-relaxed">
+            <p className="mt-2 text-sm text-slate-600 whitespace-pre-line leading-relaxed">
               {action.definition || '—'}
             </p>
           </section>
@@ -53,7 +53,7 @@ export default function DefinitionPanel({ action, option, attribution, query }) 
               <span className="font-mono text-slate-500 mr-1">{option.id}</span>
               <Highlight text={option.title} query={query} />
             </h3>
-            <p className="mt-2 max-w-[68ch] text-sm text-slate-600 whitespace-pre-line leading-relaxed">
+            <p className="mt-2 text-sm text-slate-600 whitespace-pre-line leading-relaxed">
               {option.definition ? <Highlight text={option.definition} query={query} /> : '—'}
             </p>
 
@@ -67,9 +67,14 @@ export default function DefinitionPanel({ action, option, attribution, query }) 
                 ) : (
                   <ul className="mt-2 space-y-1">
                     {attribution.map((a) => (
-                      <li key={a.expert_id} className="flex items-center gap-2 text-sm text-slate-700">
-                        <StrengthTag strength={a.strength} />
-                        <span>{a.name}</span>
+                      <li key={a.expert_id} className="text-sm text-slate-700">
+                        <div className="flex items-center gap-2">
+                          <StrengthTag strength={a.strength} />
+                          <span>{a.name}</span>
+                        </div>
+                        {a.comment && (
+                          <p className="ml-1 mt-0.5 text-xs italic text-slate-500">“{a.comment}”</p>
+                        )}
                       </li>
                     ))}
                   </ul>

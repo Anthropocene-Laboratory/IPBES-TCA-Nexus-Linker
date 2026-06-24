@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase, isConfigured } from './lib/supabase'
+import Login from './components/Login'
 import NameSetup from './components/NameSetup'
 import Workspace from './components/Workspace'
-
-const ID_KEY = 'tcaNexusExpertId'
-const NAME_KEY = 'tcaNexusExpertName'
 
 function ConfigNotice() {
   return (
@@ -22,39 +20,52 @@ function ConfigNotice() {
 }
 
 export default function App() {
-  const [me, setMe] = useState(null) // { id, name }
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Restore identity from this browser, if any.
   useEffect(() => {
     if (!isConfigured) {
       setLoading(false)
       return
     }
-    const id = localStorage.getItem(ID_KEY)
-    const name = localStorage.getItem(NAME_KEY)
-    if (id && name) {
-      // Make sure the expert row still exists (e.g. after a DB reset).
-      supabase
-        .from('experts')
-        .upsert({ id, name }, { onConflict: 'id' })
-        .then(() => {
-          setMe({ id, name })
-          setLoading(false)
-        })
-    } else {
-      setLoading(false)
-    }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      if (!data.session) setLoading(false)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s)
+      if (!s) {
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+    return () => sub.subscription.unsubscribe()
   }, [])
 
-  function onIdentified(profile) {
-    setMe(profile)
-  }
+  // With a session, load (or detect missing) the expert profile.
+  useEffect(() => {
+    if (!session) return
+    let cancelled = false
+    setLoading(true)
+    supabase
+      .from('experts')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return
+        setProfile(data || null)
+        setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [session])
 
-  function switchExpert() {
-    localStorage.removeItem(ID_KEY)
-    localStorage.removeItem(NAME_KEY)
-    setMe(null)
+  async function signOut() {
+    await supabase.auth.signOut()
+    setProfile(null)
   }
 
   if (!isConfigured) return <ConfigNotice />
@@ -65,6 +76,7 @@ export default function App() {
       </div>
     )
   }
-  if (!me) return <NameSetup onDone={onIdentified} />
-  return <Workspace me={me} onSignOut={switchExpert} />
+  if (!session) return <Login />
+  if (!profile) return <NameSetup session={session} onDone={setProfile} />
+  return <Workspace me={profile} onSignOut={signOut} />
 }

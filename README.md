@@ -32,6 +32,12 @@ React + Vite + Tailwind (frontend statique) · Supabase (Postgres + Auth + Realt
    `allowed_emails` à la fin de `supabase_schema.sql`, exécute-le, puis ajoute les
    e-mails autorisés dans la table `allowed_emails`.
 
+### Ajouter les commentaires à une base existante
+
+Si les tables existaient avant l'ajout des commentaires, exécute une seule fois
+[`supabase_migrations/20260623_add_link_comments.sql`](./supabase_migrations/20260623_add_link_comments.sql)
+dans **Supabase → SQL Editor**. Cette migration n'efface aucune donnée.
+
 ### 2. Configurer l'app
 1. **Project Settings → API** : copie *Project URL* et *anon public key*.
 2. Copie `.env.example` en `.env` et renseigne :
