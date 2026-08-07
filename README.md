@@ -1,68 +1,104 @@
 # TCA ↔ Nexus Linker
 
-Interface web permettant aux experts du Nexus de comparer les **22 actions du TCA**
-avec les **71 options de réponse du Nexus** et de créer des liens (primaire / secondaire)
-là où ils voient une pertinence. L'app ne propose aucun rapprochement automatique :
-elle sert uniquement le jugement des experts et rend visible leur accord.
+Web application used by IPBES experts to link the **22 transformative-change actions**
+of the IPBES Transformative Change Assessment (TCA, chapter 5) to the **71 response
+options** of the IPBES Nexus Assessment (NXS, chapter 5).
 
-- Listes côte à côte (actions TCA groupées par stratégie / options Nexus groupées par catégorie).
-- Définitions affichées au clic pour vérifier la pertinence.
-- Liens n-à-n, **primaire** ou **secondaire**, modifiables et supprimables par leur auteur.
-- Jugements **attribués** par nom ; **badge d'accord** dès que ≥ 2 experts relient la même
-  paire avec la même force.
-- Authentification **sans mot de passe** (lien magique par e-mail, Supabase Auth).
+The application is an **elicitation instrument, not an inference tool**: it proposes no
+candidate matches, ranks nothing and computes no textual similarity. Every recorded link
+is an explicit judgement made by a named expert.
+
+## What it does
+
+- Two lists side by side — TCA actions grouped by their five strategies, NXS response
+  options grouped by their ten categories — with the verbatim published definitions
+  displayed for the action being coded and for any option under inspection.
+- Links are **many-to-many** and qualified as **primary** or **secondary**. A coder may
+  revise or withdraw their own links at any time, and may attach an optional free-text
+  rationale.
+- Judgements are stored **individually and attributed** to their author; they are never
+  merged or overwritten, so consensus and divergence are both preserved.
+- For each action–option pair the interface shows how many coders linked it and flags
+  agreement when at least two assigned the same strength.
+- A **flow graph** tab aggregates all judgements from TCA actions to NXS categories
+  (band thickness = number of expert links); clicking a band lists the contributors.
+- **Excel export** — a formatted workbook with a `Links` sheet (one row per judgement)
+  and a `Summary by pair` sheet (counts, agreement flag, contributors).
+- Search, filters (all / mine / unlinked / agreement), keyword highlighting, collapsible
+  categories, keyboard shortcuts (↑/↓, P, S, X) and resizable columns.
 
 ## Stack
 
-React + Vite + Tailwind (frontend statique) · Supabase (Postgres + Auth + Realtime).
+React + Vite + Tailwind (static front end) · Supabase (PostgreSQL + Realtime) ·
+deployed on Vercel.
+
+## Identity model
+
+No login. Each expert enters a **name and an email**; the email is the identity key, so
+the same address always maps to one expert regardless of how the name is typed. An
+optional **shared access code** (`VITE_ACCESS_CODE`) gates the app.
+
+This is a deliberate choice for a trusted pilot: identity is declarative and could be
+misstated. For a collection where attribution must be tamper-proof, switch to Supabase
+Auth and bind each link to `auth.uid()`.
 
 ---
 
-## Mise en place
+## Setup
 
-### 1. Créer le projet Supabase
-1. Sur [supabase.com](https://supabase.com), crée un projet (niveau gratuit suffisant).
-2. **SQL Editor → New query** : colle le contenu de [`supabase_schema.sql`](./supabase_schema.sql) et exécute.
-   (Crée les tables `experts` et `links`, les règles RLS, et active le Realtime.)
-3. **Authentication → Providers → Email** : laisse activé (magic-link). Désactive
-   « Confirm email » seulement si tu veux simplifier les tests.
-4. **Authentication → URL Configuration** : ajoute l'URL où l'app tournera
-   (`http://localhost:5173` en dev, puis l'URL de prod) dans *Redirect URLs*.
-5. *(Optionnel)* Pour restreindre l'accès aux experts invités : décommente le bloc
-   `allowed_emails` à la fin de `supabase_schema.sql`, exécute-le, puis ajoute les
-   e-mails autorisés dans la table `allowed_emails`.
+### 1. Supabase
 
-### Ajouter les commentaires à une base existante
+1. Create a project on [supabase.com](https://supabase.com) (free tier is enough).
+2. **SQL Editor → New query** → paste [`supabase_schema.sql`](./supabase_schema.sql) → **Run**.
+   This creates `experts` and `links`, the row-level-security policies and Realtime.
+   ⚠️ It drops and recreates the tables — only run it on a fresh project.
+3. **Project Settings → API** → copy the *Project URL* and the *anon public key*.
 
-Si les tables existaient avant l'ajout des commentaires, exécute une seule fois
-[`supabase_migrations/20260623_add_link_comments.sql`](./supabase_migrations/20260623_add_link_comments.sql)
-dans **Supabase → SQL Editor**. Cette migration n'efface aucune donnée.
+Migrating an existing database instead of recreating it: run the files in
+[`supabase_migrations/`](./supabase_migrations/) in date order. They are additive and
+delete no data.
 
-### 2. Configurer l'app
-1. **Project Settings → API** : copie *Project URL* et *anon public key*.
-2. Copie `.env.example` en `.env` et renseigne :
-   ```
-   VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...
-   ```
+### 2. Configure
 
-### 3. Lancer en local
+Copy `.env.example` to `.env` and fill in:
+
+```
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_ACCESS_CODE=your-shared-code
+```
+
+Leave `VITE_ACCESS_CODE` empty to disable the access gate. It ships in the client
+bundle, so it is a soft gate for an unlisted URL — not a secret.
+
+### 3. Run locally
+
 ```bash
 npm install
 npm run dev
 ```
-Ouvre http://localhost:5173, saisis ton e-mail, clique le lien reçu, choisis ton nom d'affichage.
 
-### 4. Déployer (Vercel ou Netlify)
-- Pousse `app/` dans un dépôt Git.
-- Importe le projet sur Vercel/Netlify (build : `npm run build`, dossier de sortie : `dist`).
-- Ajoute les variables d'environnement `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`.
-- Ajoute l'URL de prod dans les *Redirect URLs* Supabase (étape 1.4).
+Vite reads `.env` at startup: restart the dev server after changing it.
+
+### 4. Deploy (Vercel)
+
+Import the repository, build command `npm run build`, output directory `dist`, and set
+the same three environment variables in **Settings → Environment Variables**. They are
+injected at build time, so redeploy after changing them.
 
 ---
 
-## Données
+## Data
 
-`src/data/tca_actions.json` (22) et `src/data/nexus_options.json` (71) sont extraits de
-`../../TCA and Nexus Definitions.xlsx` (onglets `TCA_Actions_Ch5` et `Nexus_Response_Options`).
-Pour régénérer après modification de l'Excel, ré-exécute le script d'extraction (openpyxl).
+`src/data/tca_actions.json` (22 actions) and `src/data/nexus_options.json` (71 options)
+are extracted from `TCA and Nexus Definitions.xlsx` (sheets `TCA_Actions_Ch5` and
+`Nexus_Response_Options`), which compiles the definitions published in the two
+assessments. The application never modifies them.
+
+## Provenance
+
+The application was specified by the authors — coding scheme, attribution rules and
+agreement criterion — and implemented with the assistance of a large language model
+(Claude Opus 4.8, Anthropic), which produced the source code, the database schema and
+the extraction of the definitions from the source workbook. Design decisions, testing
+and deployment remained with the authors.
