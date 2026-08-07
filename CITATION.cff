@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: "TCA–Nexus Linker"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+abstract: >-
+  Web application used by IPBES experts to link the 22 transformative-change
+  actions of the IPBES Transformative Change Assessment (chapter 5) to the 71
+  response options of the IPBES Nexus Assessment (chapter 5). The application is
+  an elicitation instrument rather than an inference tool: it proposes no
+  candidate matches and computes no textual similarity, so every recorded link is
+  an explicit judgement made by a named expert. Judgements are attributed,
+  qualified as primary or secondary, never merged, and exported in structured
+  form for analysis.
+authors:
+  - family-names: Loeffler
+    given-names: Benjamin
+    affiliation: "The Anthropocene Laboratory, Royal Swedish Academy of Sciences, Stockholm, Sweden"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+license: MIT
+repository-code: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
+url: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
+version: 1.0.0
+date-released: "2026-08-07"
+keywords:
+  - IPBES
+  - transformative change
+  - nexus assessment
+  - expert elicitation
+  - biodiversity
+  - research software

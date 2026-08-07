@@ -1,5 +1,8 @@
 # TCA ↔ Nexus Linker
 
+[![CI](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker/actions/workflows/ci.yml/badge.svg)](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 Web application used by IPBES experts to link the **22 transformative-change actions**
 of the IPBES Transformative Change Assessment (TCA, chapter 5) to the **71 response
 options** of the IPBES Nexus Assessment (NXS, chapter 5).
@@ -88,12 +91,55 @@ injected at build time, so redeploy after changing them.
 
 ---
 
+## Tests
+
+```bash
+npm test         # reference data integrity
+npm run build    # production build
+```
+
+Both run in CI on Node 20 and 22, alongside a check that the reference data can still
+be regenerated from the source workbook.
+
 ## Data
 
 `src/data/tca_actions.json` (22 actions) and `src/data/nexus_options.json` (71 options)
-are extracted from `TCA and Nexus Definitions.xlsx` (sheets `TCA_Actions_Ch5` and
-`Nexus_Response_Options`), which compiles the definitions published in the two
-assessments. The application never modifies them.
+hold the definitions published in the two assessments. The application only reads them.
+
+They are **derived files**: never edit them by hand. They are generated from
+`data/source/TCA and Nexus Definitions.xlsx` (sheets `TCA_Actions_Ch5` and
+`Nexus_Response_Options`) by a versioned script:
+
+```bash
+pip install -r scripts/requirements.txt
+python scripts/extract_definitions.py            # regenerate
+python scripts/extract_definitions.py --check    # verify the committed files are current
+```
+
+The `id` fields (`TCA5-A01`, `B01`, …) are the keys every stored expert link points at;
+changing them orphans existing judgements.
+
+## How to cite
+
+If you use this software, cite it using the metadata in
+[`CITATION.cff`](./CITATION.cff). A DOI is minted for each release through Zenodo — use
+the concept DOI to cite the software in general, or a version DOI to cite the exact
+release you used.
+
+## Licence
+
+The **source code** is released under the [MIT licence](./LICENSE).
+
+The **definitions** under `src/data/` and `data/source/` are reproduced from the IPBES
+Transformative Change and Nexus assessments. That material remains the property of
+IPBES and is included here with attribution for research purposes; its reuse is governed
+by the terms set by IPBES, not by the MIT licence.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and the
+[code of conduct](./CODE_OF_CONDUCT.md). Changes are listed in
+[CHANGELOG.md](./CHANGELOG.md).
 
 ## Provenance
 

@@ -1,12 +1,34 @@
 {
   "name": "tca-nexus-linker",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Expert elicitation tool linking the 22 IPBES Transformative Change actions to the 71 IPBES Nexus response options.",
+  "license": "MIT",
+  "author": "The Anthropocene Laboratory, Royal Swedish Academy of Sciences",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker.git"
+  },
+  "homepage": "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker#readme",
+  "bugs": {
+    "url": "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker/issues"
+  },
+  "keywords": [
+    "ipbes",
+    "transformative-change",
+    "nexus-assessment",
+    "expert-elicitation",
+    "biodiversity"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
