@@ -39,10 +39,29 @@ export default function Workspace({ me, onSignOut }) {
   const [collapsedCats, setCollapsedCats] = useState(() => new Set())
   const [focusedOptionId, setFocusedOptionId] = useState(null)
 
+  // PostgREST caps any single response at the project's max-rows setting and
+  // reports it only in the Content-Range header, so an unbounded select silently
+  // drops rows once the table passes that ceiling — and because the order is
+  // unspecified, the rows lost are the most recent ones. Page through with an
+  // explicit, stable order so the ceiling cannot truncate anything.
   const fetchLinks = useCallback(async () => {
-    const { data, error } = await supabase.from('links').select('*')
-    if (error) setLoadError(error.message)
-    else setLinks(data || [])
+    const PAGE = 1000
+    const all = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('links')
+        .select('*')
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
+      if (error) {
+        setLoadError(error.message)
+        return
+      }
+      all.push(...(data || []))
+      if (!data || data.length < PAGE) break
+    }
+    setLoadError('')
+    setLinks(all)
   }, [])
 
   const fetchExperts = useCallback(async () => {

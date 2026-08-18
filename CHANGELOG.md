@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Links beyond the PostgREST row ceiling were silently invisible.** The client
+  loaded every judgement with a single unbounded `select`, which PostgREST caps at
+  the project's `max-rows` (1000) while reporting the truncation only in the
+  `Content-Range` header. Once the table passed that ceiling, the rows dropped were
+  the most recent ones — the order being unspecified — so a coder's new links were
+  written to the database but never reappeared in the interface, which showed them
+  as uncoded. The Excel export, the flow-graph view and the per-pair agreement
+  counts all read the same truncated set. Both the application and the publication
+  figure script now page through the table with an explicit, stable order, and the
+  figure script refuses to draw when the number of rows it fetched disagrees with
+  the total the server reports.
+
+### Added
+
+- `scripts/export-flow-figure.cjs`, the generator for the publication alluvial
+  figure, is now versioned alongside the application it reads from.
+
 ## [1.0.0] — 2026-08-07
 
 First archived release: the state of the application used to collect the expert
