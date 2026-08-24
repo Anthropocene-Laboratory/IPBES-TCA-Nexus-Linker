@@ -17,6 +17,12 @@ All notable changes to this project are documented here. The format follows
   rule, what it retained, and where the rest can be found. The supplementary
   figure keeps every pair and every count. Both are emitted by one run of
   `scripts/export-flow-figure.cjs`.
+- **Ribbons are split by link strength.** The figure summed primary and secondary
+  judgements into one band and mentioned the distinction only in its footer,
+  although the manuscript uses it to speak of link strength and the coders divide
+  between the two on 44% of the pairs shown. Each ribbon is now split along its
+  width, the primary share drawn denser than the secondary one, in the same
+  strategy hue. Total width is unchanged, so node heights still read as counts.
 - Both sides of the figure are coloured by their published groupings — the five
   TCA strategies and the ten Nexus categories — with labelled spines and a legend
   naming every colour, so no grouping depends on hue alone.

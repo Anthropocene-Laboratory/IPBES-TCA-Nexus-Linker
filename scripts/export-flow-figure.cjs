@@ -163,6 +163,9 @@ async function fetchLinks(env) {
   return all
 }
 
+const PRIMARY_OPACITY = 0.38
+const SECONDARY_OPACITY = 0.12
+
 const STRATEGY_COLORS = ['#7E6BA8', '#4E9B6E', '#D08C3C', '#3E7CB1', '#C4577E']
 
 // Nexus response-option categories, in the order they appear in the reference data.
@@ -210,6 +213,17 @@ function fitRotated(text, availablePx, fontSize) {
   const value = String(text)
   if (value.length <= maxChars) return value
   return `${value.slice(0, maxChars - 1).replace(/[\s.,;:–—-]+$/u, '')}…`
+}
+
+function ribbonPath(xa, xb, sy, ty, h) {
+  const xm = (xa + xb) / 2
+  return [
+    `M${xa},${sy}`,
+    `C${xm},${sy} ${xm},${ty} ${xb},${ty}`,
+    `L${xb},${ty + h}`,
+    `C${xm},${ty + h} ${xm},${sy + h} ${xa},${sy + h}`,
+    'Z',
+  ].join(' ')
 }
 
 function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptionCounts = true }) {
@@ -271,7 +285,7 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
     }))
 
   const plotTop = 78
-  const plotHeight = 1320
+  const plotHeight = 1288
   const leftX = 700
   const rightX = 1420
   const nodeWidth = 14
@@ -356,20 +370,33 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
 
   // Ribbons carry the colour of the strategy they leave, so a reader can follow
   // where a strategy's judgements land without tracing individual bands.
+  //
+  // Each ribbon is split along its width into the primary and secondary
+  // judgements that compose it, drawn in the same hue at two densities. The two
+  // are different claims about a link, not interchangeable units, and on 44% of
+  // the pairs shown here the coders divide between them — a single band would
+  // add them together and say nothing about it. Total width is unchanged, so the
+  // node heights still read as the number of links.
   for (const ribbon of [...ribbons].sort((a, b) => b.h - a.h)) {
     const xa = leftX + nodeWidth
     const xb = rightX
-    const xm = (xa + xb) / 2
-    const d = [
-      `M${xa},${ribbon.sy}`,
-      `C${xm},${ribbon.sy} ${xm},${ribbon.ty} ${xb},${ribbon.ty}`,
-      `L${xb},${ribbon.ty + ribbon.h}`,
-      `C${xm},${ribbon.ty + ribbon.h} ${xm},${ribbon.sy + ribbon.h} ${xa},${ribbon.sy + ribbon.h}`,
-      'Z',
-    ].join(' ')
-    parts.push(`<path d="${d}" fill="${STRATEGY_COLORS[ribbon.si]}" fill-opacity="0.20"/>`)
+    const color = STRATEGY_COLORS[ribbon.si]
+    const hPrimary = (ribbon.h * ribbon.cell.primary) / ribbon.cell.count
+    const hSecondary = ribbon.h - hPrimary
+    if (hPrimary > 0) {
+      parts.push(
+        `<path d="${ribbonPath(xa, xb, ribbon.sy, ribbon.ty, hPrimary)}" fill="${color}" fill-opacity="${PRIMARY_OPACITY}"/>`,
+      )
+    }
+    if (hSecondary > 0) {
+      parts.push(
+        `<path d="${ribbonPath(xa, xb, ribbon.sy + hPrimary, ribbon.ty + hPrimary, hSecondary)}" fill="${color}" fill-opacity="${SECONDARY_OPACITY}"/>`,
+      )
+    }
   }
 
+  // Node bars stay solid: they are the anchor for reading height as a count, and
+  // the composition is already legible in the ribbons leaving them.
   for (const node of leftNodes) {
     parts.push(`<rect x="${leftX}" y="${node.y}" width="${nodeWidth}" height="${Math.max(node.h, 1.1)}" fill="${STRATEGY_COLORS[node.si]}"/>`)
   }
@@ -424,9 +451,9 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
   }
 
   // Two legend rows: the five strategy colours (which are also the ribbon
-  // colours) and the ten Nexus categories, so every colour on the figure is
-  // named somewhere even where a spine was too short to carry its label.
-  const legendTop = VIEW_H - 92
+  // colours) plus the two strengths, then the ten Nexus categories, so every
+  // colour and every density on the figure is named somewhere.
+  const legendTop = VIEW_H - 100
   let lx = 232
   parts.push(`<text x="${lx - 12}" y="${legendTop + 4}" text-anchor="end" class="legend" fill="#4b5563">TCA strategy</text>`)
   for (let i = 0; i < STRATEGY_COLORS.length; i += 1) {
@@ -434,9 +461,19 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
     parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${i + 1}</text>`)
     lx += 60
   }
-  parts.push(`<text x="${lx + 14}" y="${legendTop + 4}" class="legend" fill="#4b5563">Ribbons take the colour of the strategy they leave.</text>`)
+  lx += 170
+  parts.push(`<text x="${lx - 12}" y="${legendTop + 4}" text-anchor="end" class="legend" fill="#4b5563">Link strength</text>`)
+  for (const strength of [
+    { label: 'primary', opacity: PRIMARY_OPACITY },
+    { label: 'secondary', opacity: SECONDARY_OPACITY },
+  ]) {
+    parts.push(`<rect x="${lx}" y="${legendTop - 8}" width="26" height="12" rx="2" fill="#17202a" fill-opacity="${strength.opacity}" stroke="#c8ced5" stroke-width="0.5"/>`)
+    parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${strength.label}</text>`)
+    lx += 32 + Math.round(strength.label.length * 6.9) + 34
+  }
+  parts.push(`<text x="${lx + 4}" y="${legendTop + 4}" class="legend" fill="#4b5563">Each ribbon is split along its width between the two.</text>`)
 
-  const legendBottom = VIEW_H - 62
+  const legendBottom = VIEW_H - 70
   let cx = 232
   parts.push(`<text x="${cx - 12}" y="${legendBottom + 4}" text-anchor="end" class="legend" fill="#4b5563">Nexus category</text>`)
   for (const span of categorySpans) {
@@ -447,13 +484,20 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
   }
 
   // A filtered figure that does not say so misleads by omission: state the rule,
-  // what it kept, and where the complete mapping can be found.
+  // what it kept, and where the complete mapping can be found. Two lines, because
+  // one would run off the canvas.
   const n = (value) => value.toLocaleString('en-US')
-  const filterNote =
+  const splitPairs = [...matrix.values()].filter((cell) => cell.primary > 0 && cell.secondary > 0).length
+  const splitShare = Math.round((100 * splitPairs) / matrix.size)
+  const footerLines = [
+    `Ribbon width represents the number of expert-coded links, split along its width by strength: primary judgements are drawn denser than secondary.`,
     minCoders > 1
-      ? `Only action\u2013response option pairs coded by at least ${minCoders} experts are shown: ${n(matrix.size)} of ${n(pairsBefore)} pairs, carrying ${n(validLinks)} of ${n(linksBefore)} links. The complete mapping, including pairs coded by a single expert, is given in the supplementary figure. `
-      : 'Every action\u2013response option pair coded by at least one expert is shown. '
-  parts.push(`<text x="92" y="${VIEW_H - 26}" class="footer">Ribbon width represents the number of expert-coded links. ${xml(filterNote)}N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts.</text>`)
+      ? `Only action\u2013response option pairs coded by at least ${minCoders} experts are shown: ${n(matrix.size)} of ${n(pairsBefore)} pairs, carrying ${n(validLinks)} of ${n(linksBefore)} links; the complete mapping is given in the supplementary figure. N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts, and on ${n(splitPairs)} pairs (${splitShare}%) the coders divide between the two strengths.`
+      : `Every action\u2013response option pair coded by at least one expert is shown. N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts, and on ${n(splitPairs)} pairs (${splitShare}%) the coders divide between the two strengths.`,
+  ]
+  footerLines.forEach((line, index) => {
+    parts.push(`<text x="92" y="${VIEW_H - 40 + index * 18}" class="footer">${xml(line)}</text>`)
+  })
   parts.push('</svg>')
 
   return {
@@ -468,6 +512,7 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
       actionCount: leftNodes.length,
       optionCount: rightNodes.length,
       pairCount: matrix.size,
+      splitPairs,
       primaryCount,
       secondaryCount,
       unknownLinks: unknown.length,
