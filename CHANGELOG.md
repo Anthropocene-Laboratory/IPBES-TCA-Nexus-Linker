@@ -17,6 +17,13 @@ All notable changes to this project are documented here. The format follows
   rule, what it retained, and where the rest can be found. The supplementary
   figure keeps every pair and every count. Both are emitted by one run of
   `scripts/export-flow-figure.cjs`.
+- **Caption text left the image.** The methods sentence — the strength encoding,
+  the coder threshold, the denominators — was drawn inside the figure, where it
+  cannot be typeset, translated or copy-edited, and where it forced a two-line
+  block across the canvas. It is now written to
+  `publication/figure-captions.md`, one caption per figure, as text the authors
+  can edit. The plot area takes back the space.
+
 - **Counts left the figures for a supplementary workbook.** The per-action,
   per-option and per-strategy `(n = …)` annotations were a table wearing a
   figure's clothes: node height already encodes them, and 71 numbers down the
