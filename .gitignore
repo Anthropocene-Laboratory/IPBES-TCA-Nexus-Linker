@@ -6,3 +6,6 @@ dist
 .DS_Store
 
 .vercel
+
+# Generated figures: regenerate with scripts/export-flow-figure.cjs
+publication

@@ -3,8 +3,6 @@ const path = require('node:path')
 
 const ROOT = path.resolve(__dirname, '..')
 const OUTPUT_DIR = path.join(ROOT, 'publication')
-const SVG_PATH = path.join(OUTPUT_DIR, 'tca-nexus-flow-publication.svg')
-const PNG_PATH = path.join(OUTPUT_DIR, 'tca-nexus-flow-publication.png')
 
 const VIEW_W = 2260
 const VIEW_H = 1500
@@ -214,7 +212,7 @@ function fitRotated(text, availablePx, fontSize) {
   return `${value.slice(0, maxChars - 1).replace(/[\s.,;:–—-]+$/u, '')}…`
 }
 
-function buildFigure({ links, tcaActions, nexusOptions }) {
+function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptionCounts = true }) {
   const actionById = new Map(tcaActions.map((action) => [action.id, action]))
   const optionById = new Map(nexusOptions.map((option) => [option.id, option]))
   const actionTotals = new Map()
@@ -233,8 +231,22 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
     if (link.strength === 'primary') cell.primary += 1
     else cell.secondary += 1
     matrix.set(key, cell)
-    actionTotals.set(link.tca_action_id, (actionTotals.get(link.tca_action_id) || 0) + 1)
-    optionTotals.set(link.nexus_option_id, (optionTotals.get(link.nexus_option_id) || 0) + 1)
+  }
+
+  const pairsBefore = matrix.size
+  const linksBefore = [...matrix.values()].reduce((sum, cell) => sum + cell.count, 0)
+
+  // A pair carried by a single coder is a non-observation, not a weak agreement.
+  // Drop those below the threshold FIRST, then derive every total from what is
+  // left — node heights are the sum of the ribbons that leave them, so totals
+  // accumulated over all links would no longer match the ribbons drawn.
+  for (const [key, cell] of [...matrix]) {
+    if (cell.count < minCoders) matrix.delete(key)
+  }
+  for (const [key, cell] of matrix) {
+    const [actionId, optionId] = key.split('|')
+    actionTotals.set(actionId, (actionTotals.get(actionId) || 0) + cell.count)
+    optionTotals.set(optionId, (optionTotals.get(optionId) || 0) + cell.count)
   }
 
   const validLinks = [...matrix.values()].reduce((sum, cell) => sum + cell.count, 0)
@@ -305,14 +317,23 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
   )
   const rightLabels = placeLabels(
     rightNodes,
-    (node) => [`${node.option.id}  ${node.option.title}  (n = ${node.count})`],
+    (node) =>
+      showOptionCounts
+        ? [`${node.option.id}  ${node.option.title}  (n = ${node.count})`]
+        : [`${node.option.id}  ${node.option.title}`],
     plotTop,
     plotTop + plotHeight,
     14,
     2.5,
   )
 
-  const expertCount = new Set(links.map((link) => link.expert_id).filter(Boolean)).size
+  const retained = new Set(matrix.keys())
+  const expertCount = new Set(
+    links
+      .filter((link) => retained.has(`${link.tca_action_id}|${link.nexus_option_id}`))
+      .map((link) => link.expert_id)
+      .filter(Boolean),
+  ).size
   const primaryCount = [...matrix.values()].reduce((sum, cell) => sum + cell.primary, 0)
   const secondaryCount = [...matrix.values()].reduce((sum, cell) => sum + cell.secondary, 0)
 
@@ -425,13 +446,23 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
     cx += 32 + 8 + Math.round(String(span.key).length * 6.9) + 22
   }
 
-  parts.push(`<text x="92" y="${VIEW_H - 26}" class="footer">Ribbon width represents the number of expert-coded links. N = ${validLinks.toLocaleString('en-US')} links (${primaryCount.toLocaleString('en-US')} primary; ${secondaryCount.toLocaleString('en-US')} secondary) from ${expertCount} experts.</text>`)
+  // A filtered figure that does not say so misleads by omission: state the rule,
+  // what it kept, and where the complete mapping can be found.
+  const n = (value) => value.toLocaleString('en-US')
+  const filterNote =
+    minCoders > 1
+      ? `Only action\u2013response option pairs coded by at least ${minCoders} experts are shown: ${n(matrix.size)} of ${n(pairsBefore)} pairs, carrying ${n(validLinks)} of ${n(linksBefore)} links. The complete mapping, including pairs coded by a single expert, is given in the supplementary figure. `
+      : 'Every action\u2013response option pair coded by at least one expert is shown. '
+  parts.push(`<text x="92" y="${VIEW_H - 26}" class="footer">Ribbon width represents the number of expert-coded links. ${xml(filterNote)}N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts.</text>`)
   parts.push('</svg>')
 
   return {
     svg: parts.join('\n'),
     stats: {
+      minCoders,
       totalLinks: links.length,
+      pairsBeforeFilter: pairsBefore,
+      linksBeforeFilter: linksBefore,
       validLinks,
       expertCount,
       actionCount: leftNodes.length,
@@ -451,19 +482,39 @@ async function main() {
     Promise.resolve(JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'tca_actions.json'), 'utf8'))),
     Promise.resolve(JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'nexus_options.json'), 'utf8'))),
   ])
-  const { svg, stats } = buildFigure({ links, tcaActions, nexusOptions })
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
-  fs.writeFileSync(SVG_PATH, svg, 'utf8')
-
   const sharp = loadSharp()
-  await sharp(Buffer.from(svg))
-    .resize(PNG_W, PNG_H, { fit: 'fill' })
-    .flatten({ background: '#ffffff' })
-    .png({ compressionLevel: 9, palette: false })
-    .withMetadata({ density: DENSITY })
-    .toFile(PNG_PATH)
 
-  console.log(JSON.stringify({ ...stats, png: PNG_PATH, svg: SVG_PATH, width: PNG_W, height: PNG_H, density: DENSITY }, null, 2))
+  // Two figures from one download: the body figure keeps only pairs at least two
+  // experts coded (the same agreement criterion the application applies), the
+  // supplementary figure keeps everything.
+  const variants = [
+    { name: 'body', base: 'tca-nexus-flow-publication', minCoders: 2, showOptionCounts: false },
+    { name: 'supplementary', base: 'tca-nexus-flow-supplementary', minCoders: 1, showOptionCounts: true },
+  ]
+
+  const report = []
+  for (const variant of variants) {
+    const { svg, stats } = buildFigure({
+      links,
+      tcaActions,
+      nexusOptions,
+      minCoders: variant.minCoders,
+      showOptionCounts: variant.showOptionCounts,
+    })
+    const svgPath = path.join(OUTPUT_DIR, `${variant.base}.svg`)
+    const pngPath = path.join(OUTPUT_DIR, `${variant.base}.png`)
+    fs.writeFileSync(svgPath, svg, 'utf8')
+    await sharp(Buffer.from(svg))
+      .resize(PNG_W, PNG_H, { fit: 'fill' })
+      .flatten({ background: '#ffffff' })
+      .png({ compressionLevel: 9, palette: false })
+      .withMetadata({ density: DENSITY })
+      .toFile(pngPath)
+    report.push({ variant: variant.name, ...stats, svg: svgPath, png: pngPath })
+  }
+
+  console.log(JSON.stringify({ width: PNG_W, height: PNG_H, density: DENSITY, figures: report }, null, 2))
 }
 
 main().catch((error) => {

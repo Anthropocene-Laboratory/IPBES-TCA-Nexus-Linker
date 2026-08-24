@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **The flow figure is now produced in two versions.** The single figure drew all
+  719 action–response option pairs as identical grey bands, 42% of which were the
+  judgement of one coder — a non-observation rendered indistinguishable from a
+  consensus. The body figure now keeps only pairs coded by at least two experts,
+  which is the agreement criterion the application already applies, and drops the
+  per-option counts that the node heights already encode. Its footer states the
+  rule, what it retained, and where the rest can be found. The supplementary
+  figure keeps every pair and every count. Both are emitted by one run of
+  `scripts/export-flow-figure.cjs`.
+- Both sides of the figure are coloured by their published groupings — the five
+  TCA strategies and the ten Nexus categories — with labelled spines and a legend
+  naming every colour, so no grouping depends on hue alone.
+
+### Added
+
+- `sharp` as a devDependency: the figure script is versioned but could not run on
+  a clean checkout without it.
+
 ### Fixed
 
 - **Links beyond the PostgREST row ceiling were silently invisible.** The client
