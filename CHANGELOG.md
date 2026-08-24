@@ -17,6 +17,19 @@ All notable changes to this project are documented here. The format follows
   rule, what it retained, and where the rest can be found. The supplementary
   figure keeps every pair and every count. Both are emitted by one run of
   `scripts/export-flow-figure.cjs`.
+- **Counts left the figures for a supplementary workbook.** The per-action,
+  per-option and per-strategy `(n = …)` annotations were a table wearing a
+  figure's clothes: node height already encodes them, and 71 numbers down the
+  right margin cost more attention than they returned. They are now in
+  `tca-nexus-supplementary-tables.xlsx` — one sheet per action, per response
+  option and per pair, the last recording how many coders saw each pair, whether
+  they divided on strength, and which figure shows it. Nothing is lost; it is
+  moved. The supplementary figure keeps its counts.
+- **A primary-only variant.** Restricted to links at least two experts judged
+  *primary*, it draws 162 pairs and 572 links against the main figure's 413 and
+  1,386, and is legible ribbon by ribbon. It covers all 22 actions but only 62 of
+  the 71 response options, so it makes a narrower claim than the main figure.
+
 - **Ribbons are split by link strength.** The figure summed primary and secondary
   judgements into one band and mentioned the distinction only in its footer,
   although the manuscript uses it to speak of link strength and the coders divide

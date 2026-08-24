@@ -226,7 +226,16 @@ function ribbonPath(xa, xb, sy, ty, h) {
   ].join(' ')
 }
 
-function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptionCounts = true }) {
+function buildFigure({
+  links,
+  tcaActions,
+  nexusOptions,
+  minCoders = 1,
+  showCounts = true,
+  strengths = ['primary', 'secondary'],
+}) {
+  const wanted = new Set(strengths)
+  const primaryOnly = !wanted.has('secondary')
   const actionById = new Map(tcaActions.map((action) => [action.id, action]))
   const optionById = new Map(nexusOptions.map((option) => [option.id, option]))
   const actionTotals = new Map()
@@ -239,6 +248,10 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
       unknown.push(link)
       continue
     }
+    // The strength filter defines the universe: everything downstream — the
+    // pair counts, the threshold, the footer's denominators — is computed
+    // within it, never against a total the figure does not draw.
+    if (!wanted.has(link.strength)) continue
     const key = `${link.tca_action_id}|${link.nexus_option_id}`
     const cell = matrix.get(key) || { count: 0, primary: 0, secondary: 0 }
     cell.count += 1
@@ -322,7 +335,10 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
     leftNodes,
     (node) => {
       const parsed = parseAction(node.action.action)
-      return wrapWords(`${parsed.code}  ${parsed.label}  (n = ${node.count})`, 56, 3)
+      const text = showCounts
+        ? `${parsed.code}  ${parsed.label}  (n = ${node.count})`
+        : `${parsed.code}  ${parsed.label}`
+      return wrapWords(text, 56, 3)
     },
     plotTop,
     plotTop + plotHeight,
@@ -332,7 +348,7 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
   const rightLabels = placeLabels(
     rightNodes,
     (node) =>
-      showOptionCounts
+      showCounts
         ? [`${node.option.id}  ${node.option.title}  (n = ${node.count})`]
         : [`${node.option.id}  ${node.option.title}`],
     plotTop,
@@ -412,7 +428,7 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
     const color = STRATEGY_COLORS[span.key]
     parts.push(`<rect x="${leftSpineX}" y="${span.top}" width="5" height="${Math.max(span.bottom - span.top, 2)}" rx="2" fill="${color}"/>`)
     const mid = (span.top + span.bottom) / 2
-    parts.push(`<text transform="translate(${leftSpineX - 9},${mid}) rotate(-90)" text-anchor="middle" class="group" fill="${color}">Strategy ${span.key + 1} (n = ${span.count})</text>`)
+    parts.push(`<text transform="translate(${leftSpineX - 9},${mid}) rotate(-90)" text-anchor="middle" class="group" fill="${color}">${showCounts ? `Strategy ${span.key + 1} (n = ${span.count})` : `Strategy ${span.key + 1}`}</text>`)
   }
   const rightSpineX = 2170
   const categorySpans = groupSpans(rightNodes, (node) => node.category)
@@ -461,17 +477,21 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
     parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${i + 1}</text>`)
     lx += 60
   }
-  lx += 170
-  parts.push(`<text x="${lx - 12}" y="${legendTop + 4}" text-anchor="end" class="legend" fill="#4b5563">Link strength</text>`)
-  for (const strength of [
-    { label: 'primary', opacity: PRIMARY_OPACITY },
-    { label: 'secondary', opacity: SECONDARY_OPACITY },
-  ]) {
-    parts.push(`<rect x="${lx}" y="${legendTop - 8}" width="26" height="12" rx="2" fill="#17202a" fill-opacity="${strength.opacity}" stroke="#c8ced5" stroke-width="0.5"/>`)
-    parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${strength.label}</text>`)
-    lx += 32 + Math.round(strength.label.length * 6.9) + 34
+  if (!primaryOnly) {
+    lx += 170
+    parts.push(`<text x="${lx - 12}" y="${legendTop + 4}" text-anchor="end" class="legend" fill="#4b5563">Link strength</text>`)
+    for (const strength of [
+      { label: 'primary', opacity: PRIMARY_OPACITY },
+      { label: 'secondary', opacity: SECONDARY_OPACITY },
+    ]) {
+      parts.push(`<rect x="${lx}" y="${legendTop - 8}" width="26" height="12" rx="2" fill="#17202a" fill-opacity="${strength.opacity}" stroke="#c8ced5" stroke-width="0.5"/>`)
+      parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${strength.label}</text>`)
+      lx += 32 + Math.round(strength.label.length * 6.9) + 34
+    }
+    parts.push(`<text x="${lx + 4}" y="${legendTop + 4}" class="legend" fill="#4b5563">Each ribbon is split along its width between the two.</text>`)
+  } else {
+    parts.push(`<text x="${lx + 40}" y="${legendTop + 4}" class="legend" fill="#4b5563">Primary judgements only.</text>`)
   }
-  parts.push(`<text x="${lx + 4}" y="${legendTop + 4}" class="legend" fill="#4b5563">Each ribbon is split along its width between the two.</text>`)
 
   const legendBottom = VIEW_H - 70
   let cx = 232
@@ -488,13 +508,20 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
   // one would run off the canvas.
   const n = (value) => value.toLocaleString('en-US')
   const splitPairs = [...matrix.values()].filter((cell) => cell.primary > 0 && cell.secondary > 0).length
+  const optionCount = rightNodes.length
   const splitShare = Math.round((100 * splitPairs) / matrix.size)
-  const footerLines = [
-    `Ribbon width represents the number of expert-coded links, split along its width by strength: primary judgements are drawn denser than secondary.`,
+  const strengthLine = primaryOnly
+    ? 'Ribbon width represents the number of experts who judged the link primary. Secondary judgements are not shown here; they are in the supplementary figure and tables.'
+    : 'Ribbon width represents the number of expert-coded links, split along its width by strength: primary judgements are drawn denser than secondary.'
+  const universe = primaryOnly ? 'primary links' : 'links'
+  const scopeLine =
     minCoders > 1
-      ? `Only action\u2013response option pairs coded by at least ${minCoders} experts are shown: ${n(matrix.size)} of ${n(pairsBefore)} pairs, carrying ${n(validLinks)} of ${n(linksBefore)} links; the complete mapping is given in the supplementary figure. N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts, and on ${n(splitPairs)} pairs (${splitShare}%) the coders divide between the two strengths.`
-      : `Every action\u2013response option pair coded by at least one expert is shown. N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts, and on ${n(splitPairs)} pairs (${splitShare}%) the coders divide between the two strengths.`,
-  ]
+      ? `Only action\u2013response option pairs coded by at least ${minCoders} experts are shown: ${n(matrix.size)} of ${n(pairsBefore)} such pairs, carrying ${n(validLinks)} of ${n(linksBefore)} ${universe}; the complete mapping is given in the supplementary figure, and every count in the supplementary tables.`
+      : `Every action\u2013response option pair coded by at least one expert is shown.`
+  const totalsLine = primaryOnly
+    ? `N = ${n(validLinks)} primary links from ${expertCount} experts, over ${n(matrix.size)} pairs and ${optionCount} of the 71 response options.`
+    : `N = ${n(validLinks)} links (${n(primaryCount)} primary; ${n(secondaryCount)} secondary) from ${expertCount} experts, and on ${n(splitPairs)} pairs (${splitShare}%) the coders divide between the two strengths.`
+  const footerLines = [strengthLine, `${scopeLine} ${totalsLine}`]
   footerLines.forEach((line, index) => {
     parts.push(`<text x="92" y="${VIEW_H - 40 + index * 18}" class="footer">${xml(line)}</text>`)
   })
@@ -510,7 +537,7 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
       validLinks,
       expertCount,
       actionCount: leftNodes.length,
-      optionCount: rightNodes.length,
+      optionCount,
       pairCount: matrix.size,
       splitPairs,
       primaryCount,
@@ -518,6 +545,145 @@ function buildFigure({ links, tcaActions, nexusOptions, minCoders = 1, showOptio
       unknownLinks: unknown.length,
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// Supplementary tables. Every number removed from the figures lives here, so
+// the counts are moved rather than lost: per action, per response option, and
+// per action-option pair, with a column saying which figure shows each pair.
+// ---------------------------------------------------------------------------
+
+const HEADER_FILL = 'FFEFF2F5'
+
+function styleSheet(sheet) {
+  const header = sheet.getRow(1)
+  header.font = { bold: true }
+  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } }
+  header.alignment = { vertical: 'middle', wrapText: true }
+  sheet.views = [{ state: 'frozen', ySplit: 1 }]
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: sheet.columnCount },
+  }
+}
+
+async function writeTables({ links, tcaActions, nexusOptions, outputPath, minCoders }) {
+  const ExcelJS = require('exceljs')
+  const actionById = new Map(tcaActions.map((action) => [action.id, action]))
+  const optionById = new Map(nexusOptions.map((option) => [option.id, option]))
+
+  const cells = new Map()
+  for (const link of links) {
+    if (!actionById.has(link.tca_action_id) || !optionById.has(link.nexus_option_id)) continue
+    const key = `${link.tca_action_id}|${link.nexus_option_id}`
+    const cell = cells.get(key) || { primary: 0, secondary: 0 }
+    if (link.strength === 'primary') cell.primary += 1
+    else cell.secondary += 1
+    cells.set(key, cell)
+  }
+
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'TCA-Nexus Linker'
+  workbook.created = new Date()
+
+  // --- S1: per TCA action --------------------------------------------------
+  const s1 = workbook.addWorksheet('S1 By TCA action')
+  s1.columns = [
+    { header: 'Action ID', key: 'id', width: 12 },
+    { header: 'Strategy', key: 'strategy', width: 52 },
+    { header: 'Action', key: 'action', width: 64 },
+    { header: 'Links', key: 'total', width: 8 },
+    { header: 'Primary', key: 'primary', width: 9 },
+    { header: 'Secondary', key: 'secondary', width: 11 },
+    { header: 'Response options linked', key: 'options', width: 12 },
+    { header: `Options with ${minCoders}+ coders`, key: 'agreed', width: 13 },
+  ]
+  for (const action of tcaActions) {
+    const own = [...cells].filter(([key]) => key.startsWith(`${action.id}|`))
+    if (!own.length) continue
+    s1.addRow({
+      id: action.id,
+      strategy: action.strategy,
+      action: action.action,
+      total: own.reduce((sum, [, c]) => sum + c.primary + c.secondary, 0),
+      primary: own.reduce((sum, [, c]) => sum + c.primary, 0),
+      secondary: own.reduce((sum, [, c]) => sum + c.secondary, 0),
+      options: own.length,
+      agreed: own.filter(([, c]) => c.primary + c.secondary >= minCoders).length,
+    })
+  }
+  styleSheet(s1)
+
+  // --- S2: per Nexus response option --------------------------------------
+  const s2 = workbook.addWorksheet('S2 By Nexus option')
+  s2.columns = [
+    { header: 'Option ID', key: 'id', width: 11 },
+    { header: 'Category', key: 'category', width: 30 },
+    { header: 'Response option', key: 'title', width: 58 },
+    { header: 'Links', key: 'total', width: 8 },
+    { header: 'Primary', key: 'primary', width: 9 },
+    { header: 'Secondary', key: 'secondary', width: 11 },
+    { header: 'TCA actions linked', key: 'actions', width: 12 },
+    { header: `Actions with ${minCoders}+ coders`, key: 'agreed', width: 13 },
+  ]
+  for (const option of nexusOptions) {
+    const own = [...cells].filter(([key]) => key.endsWith(`|${option.id}`))
+    if (!own.length) continue
+    s2.addRow({
+      id: option.id,
+      category: option.category,
+      title: option.title,
+      total: own.reduce((sum, [, c]) => sum + c.primary + c.secondary, 0),
+      primary: own.reduce((sum, [, c]) => sum + c.primary, 0),
+      secondary: own.reduce((sum, [, c]) => sum + c.secondary, 0),
+      actions: own.length,
+      agreed: own.filter(([, c]) => c.primary + c.secondary >= minCoders).length,
+    })
+  }
+  styleSheet(s2)
+
+  // --- S3: every pair, and which figure shows it ---------------------------
+  const s3 = workbook.addWorksheet('S3 By pair')
+  s3.columns = [
+    { header: 'Action ID', key: 'aid', width: 12 },
+    { header: 'Action', key: 'action', width: 58 },
+    { header: 'Option ID', key: 'oid', width: 11 },
+    { header: 'Response option', key: 'option', width: 52 },
+    { header: 'Nexus category', key: 'category', width: 30 },
+    { header: 'Coders', key: 'total', width: 8 },
+    { header: 'Primary', key: 'primary', width: 9 },
+    { header: 'Secondary', key: 'secondary', width: 11 },
+    { header: 'Coders divide on strength', key: 'split', width: 13 },
+    { header: 'In main figure', key: 'inBody', width: 12 },
+    { header: 'In primary-only figure', key: 'inPrimary', width: 13 },
+  ]
+  const sorted = [...cells].sort((a, b) => {
+    const total = b[1].primary + b[1].secondary - (a[1].primary + a[1].secondary)
+    return total || a[0].localeCompare(b[0])
+  })
+  for (const [key, cell] of sorted) {
+    const [actionId, optionId] = key.split('|')
+    const action = actionById.get(actionId)
+    const option = optionById.get(optionId)
+    const total = cell.primary + cell.secondary
+    s3.addRow({
+      aid: actionId,
+      action: action.action,
+      oid: optionId,
+      option: option.title,
+      category: option.category,
+      total,
+      primary: cell.primary,
+      secondary: cell.secondary,
+      split: cell.primary > 0 && cell.secondary > 0 ? 'yes' : 'no',
+      inBody: total >= minCoders ? 'yes' : 'no',
+      inPrimary: cell.primary >= minCoders ? 'yes' : 'no',
+    })
+  }
+  styleSheet(s3)
+
+  await workbook.xlsx.writeFile(outputPath)
+  return { pairs: cells.size, sheets: ['S1 By TCA action', 'S2 By Nexus option', 'S3 By pair'] }
 }
 
 async function main() {
@@ -534,8 +700,15 @@ async function main() {
   // experts coded (the same agreement criterion the application applies), the
   // supplementary figure keeps everything.
   const variants = [
-    { name: 'body', base: 'tca-nexus-flow-publication', minCoders: 2, showOptionCounts: false },
-    { name: 'supplementary', base: 'tca-nexus-flow-supplementary', minCoders: 1, showOptionCounts: true },
+    { name: 'body', base: 'tca-nexus-flow-publication', minCoders: 2, showCounts: false },
+    {
+      name: 'primary-only',
+      base: 'tca-nexus-flow-primary-only',
+      minCoders: 2,
+      showCounts: false,
+      strengths: ['primary'],
+    },
+    { name: 'supplementary', base: 'tca-nexus-flow-supplementary', minCoders: 1, showCounts: true },
   ]
 
   const report = []
@@ -545,7 +718,8 @@ async function main() {
       tcaActions,
       nexusOptions,
       minCoders: variant.minCoders,
-      showOptionCounts: variant.showOptionCounts,
+      showCounts: variant.showCounts,
+      strengths: variant.strengths,
     })
     const svgPath = path.join(OUTPUT_DIR, `${variant.base}.svg`)
     const pngPath = path.join(OUTPUT_DIR, `${variant.base}.png`)
@@ -559,7 +733,16 @@ async function main() {
     report.push({ variant: variant.name, ...stats, svg: svgPath, png: pngPath })
   }
 
-  console.log(JSON.stringify({ width: PNG_W, height: PNG_H, density: DENSITY, figures: report }, null, 2))
+  const tablesPath = path.join(OUTPUT_DIR, 'tca-nexus-supplementary-tables.xlsx')
+  const tables = await writeTables({ links, tcaActions, nexusOptions, outputPath: tablesPath, minCoders: 2 })
+
+  console.log(
+    JSON.stringify(
+      { width: PNG_W, height: PNG_H, density: DENSITY, figures: report, tables: { ...tables, path: tablesPath } },
+      null,
+      2,
+    ),
+  )
 }
 
 main().catch((error) => {
