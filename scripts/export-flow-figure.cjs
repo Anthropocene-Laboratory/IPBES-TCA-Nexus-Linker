@@ -6,9 +6,9 @@ const OUTPUT_DIR = path.join(ROOT, 'publication')
 const SVG_PATH = path.join(OUTPUT_DIR, 'tca-nexus-flow-publication.svg')
 const PNG_PATH = path.join(OUTPUT_DIR, 'tca-nexus-flow-publication.png')
 
-const VIEW_W = 2100
+const VIEW_W = 2260
 const VIEW_H = 1500
-const PNG_W = 8400
+const PNG_W = 9040
 const PNG_H = 6000
 const DENSITY = 600
 
@@ -165,6 +165,55 @@ async function fetchLinks(env) {
   return all
 }
 
+const STRATEGY_COLORS = ['#7E6BA8', '#4E9B6E', '#D08C3C', '#3E7CB1', '#C4577E']
+
+// Nexus response-option categories, in the order they appear in the reference data.
+const CATEGORY_COLORS = {
+  'Conserve ecosystems': '#2E7D5B',
+  'Restore ecosystems': '#6BAE75',
+  'Manage ecosystems': '#A8C256',
+  'Consume sustainably': '#D9A441',
+  'Reduce pollution': '#C4703E',
+  'Integrate planning and governance': '#3E7CB1',
+  'Manage risk': '#7A6BA8',
+  'Ensure rights and equity': '#C4577E',
+  'Align financing': '#4A9BA8',
+  Others: '#8A8F98',
+}
+
+function strategyIndex(strategy) {
+  const match = /^Strategy\s+(\d)/.exec(String(strategy || ''))
+  return match ? Number(match[1]) - 1 : 0
+}
+
+// Contiguous runs of nodes sharing a group key, with their vertical extent.
+function groupSpans(nodes, keyOf) {
+  const spans = []
+  for (const node of nodes) {
+    const key = keyOf(node)
+    const last = spans.at(-1)
+    if (last && last.key === key) {
+      last.bottom = node.y + node.h
+      last.count += node.count
+    } else {
+      spans.push({ key, top: node.y, bottom: node.y + node.h, count: node.count })
+    }
+  }
+  return spans
+}
+
+// A rotated group label runs along its span, so the span height is its line
+// length. Truncate to what fits; too short to be readable, drop it and let the
+// legend carry the name.
+function fitRotated(text, availablePx, fontSize) {
+  const perChar = fontSize * 0.56
+  const maxChars = Math.floor((availablePx - 8) / perChar)
+  if (maxChars < 8) return ''
+  const value = String(text)
+  if (value.length <= maxChars) return value
+  return `${value.slice(0, maxChars - 1).replace(/[\s.,;:–—-]+$/u, '')}…`
+}
+
 function buildFigure({ links, tcaActions, nexusOptions }) {
   const actionById = new Map(tcaActions.map((action) => [action.id, action]))
   const optionById = new Map(nexusOptions.map((option) => [option.id, option]))
@@ -198,6 +247,7 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
       action,
       count: actionTotals.get(action.id),
       strategy: action.strategy,
+      si: strategyIndex(action.strategy),
     }))
   const rightBase = nexusOptions
     .filter((option) => optionTotals.has(option.id))
@@ -208,14 +258,16 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
       category: option.category,
     }))
 
-  const plotTop = 74
-  const plotHeight = 1344
-  const leftX = 650
-  const rightX = 1460
+  const plotTop = 78
+  const plotHeight = 1320
+  const leftX = 700
+  const rightX = 1420
   const nodeWidth = 14
 
-  const leftGap = () => 8
-  const rightGap = (index) => (rightBase[index].category === rightBase[index + 1]?.category ? 2 : 10)
+  // Gaps between groups are wider than gaps within them, so the five strategies
+  // and ten categories read as blocks before any individual row is read.
+  const leftGap = (index) => (leftBase[index].si === leftBase[index + 1]?.si ? 4 : 18)
+  const rightGap = (index) => (rightBase[index].category === rightBase[index + 1]?.category ? 2 : 14)
   const leftNodes = nodeLayout(leftBase, plotTop, plotHeight, validLinks, leftGap)
   const rightNodes = nodeLayout(rightBase, plotTop, plotHeight, validLinks, rightGap)
   const leftById = new Map(leftNodes.map((node) => [node.id, node]))
@@ -231,11 +283,10 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
       const cell = matrix.get(key)
       if (!cell) continue
       const sourceNode = leftById.get(action.id)
-      const targetNode = rightById.get(option.id)
       const h = (sourceNode.h / sourceNode.count) * cell.count
       const sy = sourceOffset.get(action.id)
       const ty = targetOffset.get(option.id)
-      ribbons.push({ key, sy, ty, h, cell })
+      ribbons.push({ key, sy, ty, h, cell, si: sourceNode.si })
       sourceOffset.set(action.id, sy + h)
       targetOffset.set(option.id, ty + h)
     }
@@ -245,7 +296,7 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
     leftNodes,
     (node) => {
       const parsed = parseAction(node.action.action)
-      return wrapWords(`${parsed.code}  ${parsed.label}  (n = ${node.count})`, 62, 3)
+      return wrapWords(`${parsed.code}  ${parsed.label}  (n = ${node.count})`, 56, 3)
     },
     plotTop,
     plotTop + plotHeight,
@@ -273,12 +324,17 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
     .column { font-size: 18px; font-weight: 600; }
     .label-left { font-size: 15px; font-weight: 400; }
     .label-right { font-size: 14px; font-weight: 400; }
+    .group { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+    .group-right { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
     .footer { font-size: 13px; fill: #4b5563; }
+    .legend { font-size: 13px; fill: #17202a; }
   </style>`)
 
-  parts.push(`<text x="${leftX}" y="42" text-anchor="end" class="column">TCA actions</text>`)
-  parts.push(`<text x="${rightX + nodeWidth}" y="42" text-anchor="start" class="column">Nexus response options</text>`)
+  parts.push(`<text x="${leftX}" y="44" text-anchor="end" class="column">TCA actions</text>`)
+  parts.push(`<text x="${rightX + nodeWidth}" y="44" text-anchor="start" class="column">Nexus response options</text>`)
 
+  // Ribbons carry the colour of the strategy they leave, so a reader can follow
+  // where a strategy's judgements land without tracing individual bands.
   for (const ribbon of [...ribbons].sort((a, b) => b.h - a.h)) {
     const xa = leftX + nodeWidth
     const xb = rightX
@@ -290,14 +346,39 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
       `C${xm},${ribbon.ty + ribbon.h} ${xm},${ribbon.sy + ribbon.h} ${xa},${ribbon.sy + ribbon.h}`,
       'Z',
     ].join(' ')
-    parts.push(`<path d="${d}" fill="#8f969d" fill-opacity="0.25"/>`)
+    parts.push(`<path d="${d}" fill="${STRATEGY_COLORS[ribbon.si]}" fill-opacity="0.20"/>`)
   }
 
   for (const node of leftNodes) {
-    parts.push(`<rect x="${leftX}" y="${node.y}" width="${nodeWidth}" height="${Math.max(node.h, 1.1)}" fill="#303030"/>`)
+    parts.push(`<rect x="${leftX}" y="${node.y}" width="${nodeWidth}" height="${Math.max(node.h, 1.1)}" fill="${STRATEGY_COLORS[node.si]}"/>`)
   }
   for (const node of rightNodes) {
-    parts.push(`<rect x="${rightX}" y="${node.y}" width="${nodeWidth}" height="${Math.max(node.h, 1.1)}" fill="#303030"/>`)
+    const fill = CATEGORY_COLORS[node.category] || '#8A8F98'
+    parts.push(`<rect x="${rightX}" y="${node.y}" width="${nodeWidth}" height="${Math.max(node.h, 1.1)}" fill="${fill}"/>`)
+  }
+
+  // Group spines. The strategy and category names are written out, so colour is a
+  // redundant cue rather than the only channel carrying the grouping.
+  const leftSpineX = 92
+  for (const span of groupSpans(leftNodes, (node) => node.si)) {
+    const color = STRATEGY_COLORS[span.key]
+    parts.push(`<rect x="${leftSpineX}" y="${span.top}" width="5" height="${Math.max(span.bottom - span.top, 2)}" rx="2" fill="${color}"/>`)
+    const mid = (span.top + span.bottom) / 2
+    parts.push(`<text transform="translate(${leftSpineX - 9},${mid}) rotate(-90)" text-anchor="middle" class="group" fill="${color}">Strategy ${span.key + 1} (n = ${span.count})</text>`)
+  }
+  const rightSpineX = 2170
+  const categorySpans = groupSpans(rightNodes, (node) => node.category)
+  for (const span of categorySpans) {
+    const color = CATEGORY_COLORS[span.key] || '#8A8F98'
+    const height = Math.max(span.bottom - span.top, 2)
+    parts.push(`<rect x="${rightSpineX}" y="${span.top}" width="5" height="${height}" rx="2" fill="${color}"/>`)
+    // Names only on this side: ten groups, most of them too short to carry a
+    // count as well, and a mixture of labelled and unlabelled counts reads worse
+    // than none. The legend below gives every category its full name.
+    const text = fitRotated(span.key, height, 12)
+    if (!text) continue
+    const mid = (span.top + span.bottom) / 2
+    parts.push(`<text transform="translate(${rightSpineX + 20},${mid}) rotate(-90)" text-anchor="middle" class="group-right" fill="${color}">${xml(text)}</text>`)
   }
 
   for (const label of leftLabels) {
@@ -321,7 +402,30 @@ function buildFigure({ links, tcaActions, nexusOptions }) {
     parts.push(`<text x="${rightX + nodeWidth + 34}" y="${label.center}" dominant-baseline="middle" class="label-right">${xml(label.lines[0])}</text>`)
   }
 
-  parts.push(`<text x="70" y="1471" class="footer">Ribbon width represents the number of expert-coded links. N = ${validLinks.toLocaleString('en-US')} links (${primaryCount.toLocaleString('en-US')} primary; ${secondaryCount.toLocaleString('en-US')} secondary) from ${expertCount} experts.</text>`)
+  // Two legend rows: the five strategy colours (which are also the ribbon
+  // colours) and the ten Nexus categories, so every colour on the figure is
+  // named somewhere even where a spine was too short to carry its label.
+  const legendTop = VIEW_H - 92
+  let lx = 232
+  parts.push(`<text x="${lx - 12}" y="${legendTop + 4}" text-anchor="end" class="legend" fill="#4b5563">TCA strategy</text>`)
+  for (let i = 0; i < STRATEGY_COLORS.length; i += 1) {
+    parts.push(`<rect x="${lx}" y="${legendTop - 8}" width="26" height="12" rx="2" fill="${STRATEGY_COLORS[i]}"/>`)
+    parts.push(`<text x="${lx + 32}" y="${legendTop + 4}" class="legend">${i + 1}</text>`)
+    lx += 60
+  }
+  parts.push(`<text x="${lx + 14}" y="${legendTop + 4}" class="legend" fill="#4b5563">Ribbons take the colour of the strategy they leave.</text>`)
+
+  const legendBottom = VIEW_H - 62
+  let cx = 232
+  parts.push(`<text x="${cx - 12}" y="${legendBottom + 4}" text-anchor="end" class="legend" fill="#4b5563">Nexus category</text>`)
+  for (const span of categorySpans) {
+    const color = CATEGORY_COLORS[span.key] || '#8A8F98'
+    parts.push(`<rect x="${cx}" y="${legendBottom - 8}" width="26" height="12" rx="2" fill="${color}"/>`)
+    parts.push(`<text x="${cx + 32}" y="${legendBottom + 4}" class="legend">${xml(span.key)}</text>`)
+    cx += 32 + 8 + Math.round(String(span.key).length * 6.9) + 22
+  }
+
+  parts.push(`<text x="92" y="${VIEW_H - 26}" class="footer">Ribbon width represents the number of expert-coded links. N = ${validLinks.toLocaleString('en-US')} links (${primaryCount.toLocaleString('en-US')} primary; ${secondaryCount.toLocaleString('en-US')} secondary) from ${expertCount} experts.</text>`)
   parts.push('</svg>')
 
   return {
