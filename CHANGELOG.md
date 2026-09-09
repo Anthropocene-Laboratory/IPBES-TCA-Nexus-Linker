@@ -4,10 +4,78 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] — 2026-09-09
+
+### Added
+
+- **Short action names, taken verbatim from the Approach × Action figure.** Sergio
+  asked for shortened action names in the figure with the full text in a table;
+  Rainer asked whether short names existed and got no answer. They did — in his
+  own figure. The same 22 strings now label both panels, so a reader moving
+  between the two figures does not have to re-identify the actions. A guard
+  compares the short-name table against the action data before anything is drawn
+  and aborts on a missing, unknown or duplicated name, so a second hand-maintained
+  naming of the same 22 things cannot drift out of step in silence. The published
+  titles stay in the alluvial's source data and in sheet S1.
+  The short names buy back 170 px of the left column, which goes to the ribbon
+  band: 498 px instead of 328, wide enough to follow a ribbon rather than read a
+  near-vertical hairpin. Panel (a) drops to one line per row and loses 240 px of
+  height it no longer needs, printing at 190.5 × 163.0 mm.
+
+- **A second panel: TCA actions by Nexus response-option category.** A reviewer
+  read the alluvial and reported that "connections go all over the place" with
+  no discernible pattern. That is a claim about the data, and it is false: every
+  action reaches only 2–9 of the ten categories, the share carried by an action's
+  largest category runs from 21% to 93%, and the categories themselves range from
+  20.7% of all links (*Ensure rights and equity*, the largest for nine of the 22
+  actions) down to 3.5% (*Conserve ecosystems*). The structure was real and the
+  figure was hiding it, because 70 option rows and 413 ribbons exceed what anyone
+  reads off a page. `tca-nexus-action-category-matrix.svg/.png` shows the same
+  1,386 links as a 22 × 10 matrix: one number per cell, shading that only repeats
+  the number, so it survives greyscale and colour-blind reading intact. The two
+  panels are drawn from one shared `collectPairs` rule and the run aborts if
+  their link and pair counts ever disagree. Category names are set on the
+  diagonal rather than vertically: the eye follows a 45-degree baseline without
+  tilting the page, and a label of length L costs L/sqrt(2) of height instead of L.
+- **Sheet S4 in the supplementary workbook**, carrying the matrix as text, and
+  cross-checked cell for cell against both sheet S3 and the numbers painted into
+  the SVG.
+- `sharp` as a devDependency: the figure script is versioned but could not run on
+  a clean checkout without it.
+- `scripts/export-flow-figure.cjs`, the generator for the publication alluvial
+  figure, is now versioned alongside the application it reads from.
 
 ### Changed
 
+- **The matrix panel no longer draws its own title.** "Expert-coded links, TCA
+  actions by Nexus response-option category" only restated the caption printed
+  directly beneath it, and a title baked into pixels cannot be typeset,
+  translated or numbered by the journal — the same reason the methods sentence
+  was moved out of the figures earlier. The panel takes back the 48 px, and now
+  prints at 190.5 x 157.9 mm instead of 163.0.
+
+- **The figure is now a full-page portrait, because the arithmetic leaves no
+  choice.** Seventy-one response-option labels need at least 2.6 mm of line pitch
+  to be read at 7 pt, so the right-hand column alone requires about 18.5 cm of
+  height; landscape cannot supply that at any width, which is why a reviewer
+  reported the image as "too small … to make sense of it". The canvas is now
+  1800 × 2100 (190.5 × 222.3 mm at 600 dpi) and every type size is checked
+  against a 7 pt floor before the file is written — a layout change can no longer
+  quietly shrink a label below what a reader can resolve on paper. Body text
+  lands at 7.2 pt, with a line pitch of 2.82 mm on the main figure and 3.19 mm on
+  the primary-only variant.
+- **Response options are ordered within their category by barycentre.** The order
+  inside a category was the arbitrary code sequence B01, F01, H10; ordering each
+  option by the mean position of the actions that reach it removes crossings that
+  carry no information. The gain is small and reported as measured, not asserted:
+  34,685 → 34,074 ribbon crossings. The 22 actions keep their published 1.1–5.5
+  numbering, because a reader looks them up by that number and scrambling them
+  inside a strategy costs more than the 5.7% of crossings it would save.
+- **The legend flows and wraps** instead of sitting at offsets hand-tuned for one
+  page width, and the plot height is derived from the legend it has to clear
+  rather than guessed. Category names on the right-hand spine are now printed in
+  full or not at all: a truncated "Consume sus…" was worse than a bare coloured
+  spine, since the legend already carries all ten names.
 - **The flow figure is now produced in two versions.** The single figure drew all
   719 action–response option pairs as identical grey bands, 42% of which were the
   judgement of one coder — a non-observation rendered indistinguishable from a
@@ -46,11 +114,17 @@ All notable changes to this project are documented here. The format follows
 - Both sides of the figure are coloured by their published groupings — the five
   TCA strategies and the ten Nexus categories — with labelled spines and a legend
   naming every colour, so no grouping depends on hue alone.
-
-### Added
-
-- `sharp` as a devDependency: the figure script is versioned but could not run on
-  a clean checkout without it.
+- **Figure 3b names the strategies and drops the option titles.** Sixty
+  characters of response-option title down the right edge cost the ribbons most
+  of the page. The right column now carries the assessments' own codes, which
+  frees 580 px for the band a reader actually traces: 1,078 px instead of 498.
+  The five strategies gain their published names, which only fit in the legend --
+  rotated on the spine, a name of 63 to 117 characters has room for about 22. The
+  code-to-title key moves into the caption, because it cannot fit inside an image
+  that already spends 1,818 px on 71 label rows. Line pitch is 2.62 mm on the
+  body figure, 2.96 on the primary-only variant and 2.58 on the supplement, and
+  the script now refuses to write a figure whose labels would sit closer than
+  2.55 mm -- a floor proved to fire before being relied on.
 
 ### Fixed
 
@@ -65,11 +139,6 @@ All notable changes to this project are documented here. The format follows
   figure script now page through the table with an explicit, stable order, and the
   figure script refuses to draw when the number of rows it fetched disagrees with
   the total the server reports.
-
-### Added
-
-- `scripts/export-flow-figure.cjs`, the generator for the publication alluvial
-  figure, is now versioned alongside the application it reads from.
 
 ## [1.0.0] — 2026-08-07
 

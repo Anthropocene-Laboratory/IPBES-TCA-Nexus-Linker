@@ -19,8 +19,21 @@ authors:
 license: MIT
 repository-code: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
 url: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
-version: 1.0.0
-date-released: "2026-08-07"
+version: 1.1.0
+date-released: "2026-09-09"
+references:
+  # The article's entry point: an R pipeline that pins this repository as a
+  # submodule and produces the other half of the analysis.
+  - type: software
+    title: "NXS_TCA_Article"
+    abstract: >-
+      Literature-corpus analysis for the same article: OpenAlex corpus over the
+      IPBES TCA and Nexus Zotero groups, SPECTER2 embeddings and BERTopic topics,
+      producing the approaches x actions heat map.
+    authors:
+      - family-names: Krug
+        given-names: "Rainer M."
+    repository-code: "https://github.com/rkrug/NXS_TCA_Article"
 keywords:
   - IPBES
   - transformative change

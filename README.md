@@ -119,6 +119,22 @@ python scripts/extract_definitions.py --check    # verify the committed files ar
 The `id` fields (`TCA5-A01`, `B01`, …) are the keys every stored expert link points at;
 changing them orphans existing judgements.
 
+## Role in the article
+
+This repository is one half of the analysis behind the TCA × Nexus article. The other half
+— the literature corpus and the approaches × actions heat map of Figure 2 — is
+[`rkrug/NXS_TCA_Article`](https://github.com/rkrug/NXS_TCA_Article), an R `targets`
+pipeline, which is also the article's entry point: it pins this repository as a submodule
+at a tagged release, so the code and the published figures always correspond.
+
+Produced here, by one run of `node scripts/export-flow-figure.cjs`: **Figures 3a, 3b and 4**,
+**S1–S4 Fig** and the **S1 Table** workbook, together with `publication/figure-captions.md`
+and a `publication/submission/` folder under the file names PLOS requires.
+
+The statistical analysis of the elicited linkages is not in this repository. This one holds
+the instrument and the figures it draws; the analysis is versioned separately, and what the
+article needs from it is supplied as supporting information.
+
 ## How to cite
 
 If you use this software, cite it using the metadata in
