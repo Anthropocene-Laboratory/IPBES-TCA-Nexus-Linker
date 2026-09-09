@@ -142,8 +142,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [1.0.0] — 2026-08-07
 
-First archived release: the state of the application used to collect the expert
-coding reported in the accompanying article.
+The state of the application used to collect the expert coding reported in the
+accompanying article. Described here as a release, but never tagged and never
+archived anywhere: see the citation section of the README.
 
 ### Added
 

@@ -138,9 +138,12 @@ article needs from it is supplied as supporting information.
 ## How to cite
 
 If you use this software, cite it using the metadata in
-[`CITATION.cff`](./CITATION.cff). A DOI is minted for each release through Zenodo — use
-the concept DOI to cite the software in general, or a version DOI to cite the exact
-release you used.
+[`CITATION.cff`](./CITATION.cff), naming the release you used — the tags mark them.
+
+There is **no DOI yet**. Minting one means enabling this repository in Zenodo and then
+publishing a GitHub release, in that order: Zenodo archives releases created after the
+repository is enabled, not before. Until that is done, `CITATION.cff` carries no
+`doi:` field and neither should anything citing this repository.
 
 ## Licence
 
