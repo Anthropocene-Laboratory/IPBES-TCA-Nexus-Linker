@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker/actions/workflows/ci.yml/badge.svg)](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22686359.svg)](https://doi.org/10.5281/zenodo.22686359)
 
 Web application used by IPBES experts to link the **22 transformative-change actions**
 of the IPBES Transformative Change Assessment (TCA, chapter 5) to the **71 response
@@ -121,11 +122,12 @@ changing them orphans existing judgements.
 
 ## Role in the article
 
-This repository is one half of the analysis behind the TCA × Nexus article. The other half
-— the literature corpus and the approaches × actions heat map of Figure 2 — is
-[`rkrug/NXS_TCA_Article`](https://github.com/rkrug/NXS_TCA_Article), an R `targets`
-pipeline, which is also the article's entry point: it pins this repository as a submodule
-at a tagged release, so the code and the published figures always correspond.
+This repository is one part of the material behind the TCA × Nexus article. The literature
+corpus and the approaches × actions heat map of Figure 2 come from
+[`rkrug/NXS_TCA_Article`](https://github.com/rkrug/NXS_TCA_Article), an R `targets` pipeline.
+The two are linked by DOI rather than by directory: each is archived on Zenodo and cited in
+the article's data availability statement, which is what makes the versions traceable — a
+repository link is not a persistent identifier.
 
 Produced here, by one run of `node scripts/export-flow-figure.cjs`: **Figures 3a, 3b and 4**,
 **S1–S4 Fig** and the **S1 Table** workbook, together with `publication/figure-captions.md`
@@ -144,12 +146,16 @@ versioned separately.
 ## How to cite
 
 If you use this software, cite it using the metadata in
-[`CITATION.cff`](./CITATION.cff), naming the release you used — the tags mark them.
+[`CITATION.cff`](./CITATION.cff).
 
-There is **no DOI yet**. Minting one means enabling this repository in Zenodo and then
-publishing a GitHub release, in that order: Zenodo archives releases created after the
-repository is enabled, not before. Until that is done, `CITATION.cff` carries no
-`doi:` field and neither should anything citing this repository.
+Each release is archived on Zenodo and carries a DOI:
+
+| | |
+|---|---|
+| **Concept DOI** — all versions, resolves to the latest | [10.5281/zenodo.22686359](https://doi.org/10.5281/zenodo.22686359) |
+| Version DOI — v1.2.0, the release the article cites | [10.5281/zenodo.22686360](https://doi.org/10.5281/zenodo.22686360) |
+
+Cite the concept DOI unless you depend on one exact version. It does not go stale.
 
 ## Licence
 
