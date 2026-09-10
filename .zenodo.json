@@ -2,7 +2,7 @@
   "upload_type": "software",
   "access_right": "open",
   "license": "mit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "title": "TCA-Nexus Linker: an elicitation instrument for linking IPBES transformative-change actions to Nexus response options",
   "description": "<p>Web application used by IPBES experts to link the 22 transformative-change actions of the IPBES Transformative Change Assessment (chapter 5) to the 71 response options of the IPBES Nexus Assessment (chapter 5).</p><p>The application is an elicitation instrument rather than an inference tool: it proposes no candidate matches, ranks nothing and computes no textual similarity, so every recorded link is an explicit judgement made by a named expert. Judgements are attributed, qualified as primary or secondary, never merged, and exported in structured form for analysis.</p><p>This release also contains the generator for the publication figures drawn from those judgements.</p>",
   "creators": [

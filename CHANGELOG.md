@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-09-10
+
+### Added
+
+- **`scripts/export-dataset.cjs`, and with it a published dataset.** The judgements
+  the article reports existed only inside the application's database, so no claim
+  in the paper could be checked from outside the project — which is what the
+  journal's data policy exists to prevent. The script writes the four columns the
+  findings actually rest on, applies the coder pseudonyms, and refuses to write
+  anything from a truncated fetch. The result is
+  [IPBES-TCA-Nexus-linkages-data](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-linkages-data),
+  CC BY 4.0, carrying a verification script that recomputes every published number
+  from the deposited files alone.
+  Pseudonyms are assigned once for the whole project and never renumbered: the
+  dataset keys on the database id, the analysis on the self-entered name, and the
+  map records both so that `Coder A` is one person everywhere.
+
+### Fixed
+
+- `.zenodo.json` declared `"MIT"` where Zenodo expects the lowercase opendefinition
+  identifier. A rejected licence id fails the deposit without a message.
+
 ## [1.1.0] — 2026-09-09
 
 ### Added

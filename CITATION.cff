@@ -19,11 +19,23 @@ authors:
 license: MIT
 repository-code: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
 url: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-Linker"
-version: 1.1.0
-date-released: "2026-09-09"
+version: 1.2.0
+date-released: "2026-09-10"
 references:
-  # The article's entry point: an R pipeline that pins this repository as a
-  # submodule and produces the other half of the analysis.
+  # The dataset this software produced, and which the article's findings rest on.
+  - type: data
+    title: "Expert-coded linkages between the IPBES transformative-change actions and the IPBES Nexus response options"
+    abstract: >-
+      1,692 judgements by eight IPBES expert authors, each linking one
+      transformative-change action to one Nexus response option and qualifying the
+      linkage as primary or secondary. Exported from this application.
+    authors:
+      - family-names: Loeffler
+        given-names: Benjamin
+        affiliation: "The Anthropocene Laboratory, Royal Swedish Academy of Sciences, Stockholm, Sweden"
+    license: CC-BY-4.0
+    repository-code: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-linkages-data"
+  # The other half of the analysis behind the same article.
   - type: software
     title: "NXS_TCA_Article"
     abstract: >-
