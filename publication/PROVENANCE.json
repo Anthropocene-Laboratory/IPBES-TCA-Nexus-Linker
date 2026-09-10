@@ -1,7 +1,7 @@
 {
-  "commit": "2e6c71649e5e832dbbe54b5e22bf09f611ef9869",
-  "working_tree_modified": true,
-  "generated_at": "2026-09-10T13:15:42Z",
+  "commit": "102b35d32ff9cf964a2061af806859a42ce6b5c8",
+  "working_tree_modified": false,
+  "generated_at": "2026-09-10T13:16:24Z",
   "generator": "scripts/export-flow-figure.cjs",
   "inputs": {
     "judgements": 1692,
@@ -25,6 +25,6 @@
     "tca-nexus-reach-breadth.svg": "bbc6d628eec89311",
     "tca-nexus-strength-by-category.png": "d5aab0925e4a9567",
     "tca-nexus-strength-by-category.svg": "761482be7b14014e",
-    "tca-nexus-supplementary-tables.xlsx": "74a73abaebe9c753"
+    "tca-nexus-supplementary-tables.xlsx": "0b5e6098b1ec11ae"
   }
 }
