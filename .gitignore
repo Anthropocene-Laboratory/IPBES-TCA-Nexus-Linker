@@ -7,5 +7,8 @@ dist
 
 .vercel
 
-# Generated figures: regenerate with scripts/export-flow-figure.cjs
-publication
+# Generated figures: regenerate with scripts/export-flow-figure.cjs.
+# The manifest is the exception and stays tracked: not versioning a figure is
+# defensible, not being able to say which commit produced it is not.
+publication/*
+!publication/PROVENANCE.json

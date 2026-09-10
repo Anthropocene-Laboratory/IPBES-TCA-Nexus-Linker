@@ -1,0 +1,30 @@
+{
+  "commit": "2e6c71649e5e832dbbe54b5e22bf09f611ef9869",
+  "working_tree_modified": true,
+  "generated_at": "2026-09-10T13:15:42Z",
+  "generator": "scripts/export-flow-figure.cjs",
+  "inputs": {
+    "judgements": 1692,
+    "tca_actions": 22,
+    "nexus_options": 71,
+    "source": "live Supabase database (paginated read)"
+  },
+  "outputs": {
+    "figure-captions.md": "60ef4c8807d7a31c",
+    "tca-nexus-action-category-matrix.png": "16e00f05ab784acd",
+    "tca-nexus-action-category-matrix.svg": "5f4d0f0c5f066877",
+    "tca-nexus-coder-counts.png": "18f6f3e375cc75c5",
+    "tca-nexus-coder-counts.svg": "b4301d20ae4d9cfd",
+    "tca-nexus-flow-primary-only.png": "77636006167a5bcc",
+    "tca-nexus-flow-primary-only.svg": "62f8c3dad8846770",
+    "tca-nexus-flow-publication.png": "6faabbd817710cd2",
+    "tca-nexus-flow-publication.svg": "8c72109e5f9d76e5",
+    "tca-nexus-flow-supplementary.png": "929b8dab2053b2b1",
+    "tca-nexus-flow-supplementary.svg": "5ada3f16368968f9",
+    "tca-nexus-reach-breadth.png": "4a100b648580611e",
+    "tca-nexus-reach-breadth.svg": "bbc6d628eec89311",
+    "tca-nexus-strength-by-category.png": "d5aab0925e4a9567",
+    "tca-nexus-strength-by-category.svg": "761482be7b14014e",
+    "tca-nexus-supplementary-tables.xlsx": "74a73abaebe9c753"
+  }
+}

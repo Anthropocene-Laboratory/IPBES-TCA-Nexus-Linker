@@ -1,8 +1,57 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const crypto = require('node:crypto')
+const { execFileSync } = require('node:child_process')
 
 const ROOT = path.resolve(__dirname, '..')
 const OUTPUT_DIR = path.join(ROOT, 'publication')
+
+// The figures leave this repository and enter a manuscript, but `publication/`
+// is not versioned -- so nothing here would say which state of the code drew
+// them. That link cannot be reconstructed six months later; it is free at the
+// moment of generation. The manifest is the one file in `publication/` that
+// stays tracked.
+function writeProvenance(outputDir, inputs) {
+  const git = (...args) => {
+    try {
+      return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim()
+    } catch {
+      return null
+    }
+  }
+  const digest = (file) =>
+    crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 16)
+
+  const produced = fs
+    .readdirSync(outputDir, { withFileTypes: true })
+    .filter((e) => e.isFile() && e.name !== 'PROVENANCE.json')
+    .map((e) => e.name)
+    .sort()
+
+  const dirty = git('status', '--porcelain')
+  const manifest = {
+    commit: git('rev-parse', 'HEAD'),
+    // The field that matters. Figures drawn from an uncommitted working tree
+    // are reproducible by nobody, the author included.
+    working_tree_modified: dirty === null ? null : dirty.length > 0,
+    generated_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    generator: 'scripts/export-flow-figure.cjs',
+    inputs,
+    outputs: Object.fromEntries(
+      produced.map((name) => [name, digest(path.join(outputDir, name))]),
+    ),
+  }
+  fs.writeFileSync(
+    path.join(outputDir, 'PROVENANCE.json'),
+    JSON.stringify(manifest, null, 2) + '\n',
+  )
+  if (manifest.working_tree_modified) {
+    console.error(
+      '!  figures generated from a modified working tree: not reproducible as they stand',
+    )
+  }
+  return manifest
+}
 
 // Portrait, full page. The binding constraint is arithmetic, not taste: 71
 // response-option labels need at least 2.6 mm of line pitch to be read at 7 pt,
@@ -1778,9 +1827,20 @@ async function main() {
     fs.copyFileSync(from, path.join(submissionDir, name))
   }
 
+  const provenance = writeProvenance(OUTPUT_DIR, {
+    judgements: links.length,
+    tca_actions: tcaActions.length,
+    nexus_options: nexusOptions.length,
+    source: 'live Supabase database (paginated read)',
+  })
+
   console.log(
     JSON.stringify(
       {
+        provenance: {
+          commit: provenance.commit,
+          working_tree_modified: provenance.working_tree_modified,
+        },
         width: PNG_W,
         height: PNG_H,
         density: DENSITY,

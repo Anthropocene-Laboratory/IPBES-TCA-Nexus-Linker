@@ -1,7 +1,7 @@
 {
   "name": "tca-nexus-linker",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Expert elicitation tool linking the 22 IPBES Transformative Change actions to the 71 IPBES Nexus response options.",
   "license": "MIT",
   "author": "The Anthropocene Laboratory, Royal Swedish Academy of Sciences",
