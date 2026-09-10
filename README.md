@@ -124,7 +124,8 @@ changing them orphans existing judgements.
 
 This repository is one part of the material behind the TCA × Nexus article. The literature
 corpus and the approaches × actions heat map of Figure 2 come from
-[`rkrug/NXS_TCA_Article`](https://github.com/rkrug/NXS_TCA_Article), an R `targets` pipeline.
+Rainer M. Krug's R `targets` pipeline, archived at
+[10.5281/zenodo.22687426](https://doi.org/10.5281/zenodo.22687426).
 The two are linked by DOI rather than by directory: each is archived on Zenodo and cited in
 the article's data availability statement, which is what makes the versions traceable — a
 repository link is not a persistent identifier.

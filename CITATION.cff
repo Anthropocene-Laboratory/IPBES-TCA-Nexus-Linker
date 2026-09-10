@@ -46,7 +46,7 @@ references:
     repository-code: "https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-linkages-data"
   # The other half of the analysis behind the same article.
   - type: software
-    title: "NXS_TCA_Article"
+    title: "IPBES TCA-Nexus literature pipeline"
     abstract: >-
       Literature-corpus analysis for the same article: OpenAlex corpus over the
       IPBES TCA and Nexus Zotero groups, SPECTER2 embeddings and BERTopic topics,
@@ -54,7 +54,8 @@ references:
     authors:
       - family-names: Krug
         given-names: "Rainer M."
-    repository-code: "https://github.com/rkrug/NXS_TCA_Article"
+    doi: "10.5281/zenodo.22687426"
+    repository-code: "https://github.com/rkrug/IPBES-TCA-Nexus-Linker"
 keywords:
   - IPBES
   - transformative change
