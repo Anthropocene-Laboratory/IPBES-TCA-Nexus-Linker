@@ -131,9 +131,15 @@ Produced here, by one run of `node scripts/export-flow-figure.cjs`: **Figures 3a
 **S1–S4 Fig** and the **S1 Table** workbook, together with `publication/figure-captions.md`
 and a `publication/submission/` folder under the file names PLOS requires.
 
-The statistical analysis of the elicited linkages is not in this repository. This one holds
-the instrument and the figures it draws; the analysis is versioned separately, and what the
-article needs from it is supplied as supporting information.
+The judgements themselves are published as a dataset of their own, under CC BY 4.0:
+[**IPBES-TCA-Nexus-linkages-data**](https://github.com/Anthropocene-Laboratory/IPBES-TCA-Nexus-linkages-data).
+It is written from this repository by `node scripts/export-dataset.cjs --map <private map>`,
+which is also what applies the coder pseudonyms — one assignment for the whole project, so
+`Coder A` denotes the same person everywhere.
+
+The statistical analysis of those linkages is not in this repository. This one holds the
+instrument, the figures it draws, and the export that produces the dataset; the analysis is
+versioned separately.
 
 ## How to cite
 
