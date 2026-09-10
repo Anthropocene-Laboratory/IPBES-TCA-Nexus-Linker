@@ -1,0 +1,10 @@
+{
+  "_lisez_moi": "Uniquement ce qui n'est PAS inspectable : decisions assumees et dependances. Jamais une case a cocher pour un fait que l'audit etablit seul.",
+  "assume": {
+    "journal des versions": "CHANGELOG retire le 2026-09-10 (commit 2e6c716) : un seul mainteneur, et les notes de release Zenodo tiennent le role"
+  },
+  "a_ouvrir_a_publication": [
+    "isSupplementTo vers le DOI de l'article dans .zenodo.json, puis une nouvelle release"
+  ],
+  "revue_visee": "PLOS Sustainability and Transformation"
+}
