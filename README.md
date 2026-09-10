@@ -169,8 +169,7 @@ by the terms set by IPBES, not by the MIT licence.
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) and the
-[code of conduct](./CODE_OF_CONDUCT.md). Changes are listed in
-[CHANGELOG.md](./CHANGELOG.md).
+[code of conduct](./CODE_OF_CONDUCT.md).
 
 ## Provenance
 
