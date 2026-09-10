@@ -164,7 +164,9 @@ The **source code** is released under the [MIT licence](./LICENSE).
 The **definitions** under `src/data/` and `data/source/` are reproduced from the IPBES
 Transformative Change and Nexus assessments. That material remains the property of
 IPBES and is included here with attribution for research purposes; its reuse is governed
-by the terms set by IPBES, not by the MIT licence.
+by the terms set by IPBES, not by the MIT licence. That scope is recorded in
+[`NOTICE`](./NOTICE); `LICENSE` is the unmodified MIT text, so that automated
+licence detection can classify it.
 
 ## Contributing
 

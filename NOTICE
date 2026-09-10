@@ -1,0 +1,26 @@
+NOTICE
+======
+
+The MIT licence in LICENSE covers the source code of this repository only.
+This file records the material it does not cover.
+
+The scope note lived at the end of LICENSE until 2026-09-10. GitHub's licence
+detection could not classify the file with it appended, so the repository
+showed no licence at all in the API and in the sidebar -- which is what
+automated compliance checks read. LICENSE is now the unmodified MIT text.
+
+NOTE ON DATA
+
+This licence covers the source code only.
+
+The reference datasets under `src/data/` and the source workbook under
+`data/source/` reproduce definitions published in two IPBES assessments:
+
+  - IPBES Assessment Report on the Underlying Causes of Biodiversity Loss and
+    the Determinants of Transformative Change (Transformative Change Assessment)
+  - IPBES Nexus Assessment Report on the Interlinkages among Biodiversity,
+    Water, Food and Health
+
+That material remains the property of IPBES and is reproduced here with
+attribution for research purposes. Reuse of the definitions is subject to the
+terms set by IPBES, not to the MIT licence above.

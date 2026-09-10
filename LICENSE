@@ -19,21 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-NOTE ON DATA
-
-This licence covers the source code only.
-
-The reference datasets under `src/data/` and the source workbook under
-`data/source/` reproduce definitions published in two IPBES assessments:
-
-  - IPBES Assessment Report on the Underlying Causes of Biodiversity Loss and
-    the Determinants of Transformative Change (Transformative Change Assessment)
-  - IPBES Nexus Assessment Report on the Interlinkages among Biodiversity,
-    Water, Food and Health
-
-That material remains the property of IPBES and is reproduced here with
-attribution for research purposes. Reuse of the definitions is subject to the
-terms set by IPBES, not to the MIT licence above.
